@@ -1,4 +1,10 @@
-pub fn render(framebuffer: &mut Framebuffer, objects: &[Object]) {
+use crate::framebuffer::Framebuffer;
+use crate::caster::{cast_ray, Ray};
+use glam::Vec3A;
+use crate::caster::RayIntersect;
+
+
+pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>]) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
@@ -13,14 +19,26 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Object]) {
             let screen_x = screen_x * aspect_ratio;
 
             // Calculate the direction of the ray for this pixel
-            let ray_direction = normalize(&Vec3::new(screen_x, screen_y, -1.0));
+            let ray_direction = normalize(&Vec3A::new(screen_x, screen_y, -1.0));
+            let ray_origin = Vec3A::new(0.0, 0.0, 0.0);
+            let ray = Ray { origin: ray_origin, direction: ray_direction };
 
             // Cast the ray and get the pixel color
-            let pixel_color = cast_ray(&Vec3::new(0.0, 0.0, 0.0), &ray_direction, objects);
+            let pixel_color = cast_ray(&ray, objects);
 
             // Draw the pixel on screen with the returned color
-            framebuffer.set_current_color(pixel_color);
-            framebuffer.point(x, y);
+            framebuffer.set_pixel_color(x, y, pixel_color);
+    
         }
     }
 }
+
+
+fn normalize(v: &Vec3A) -> Vec3A {
+    let length = v.length();
+    if length > 0.0 {
+        *v / length
+    } else {
+        *v
+    }
+}  

@@ -1,6 +1,280 @@
 mod framebuffer;
+mod render;
+mod caster;
+mod sphere;
+
+use framebuffer::Framebuffer;
+use render::render;
+use caster::{Ray, RayIntersect};
+use sphere::Sphere;
+use glam::Vec3A;
+use raylib::prelude::*;
+
 
 
 fn main() {
-    
+    let width = 720;
+    let height = 780;
+
+    let (mut rl, thread) = raylib::init()
+        .size(width as i32, height as i32)
+        .title("Raytracer")
+        .build();
+
+    let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
+
+    let objects: Vec<Box<dyn RayIntersect>> = vec![
+    Box::new(Sphere { center: Vec3A::new(-2.34, 2.16, -5.0), radius: 0.035, color: Color::new(254, 249, 225, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.31, 2.13, -5.0), radius: 0.09, color: Color::new(237, 231, 207, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.19, 2.06, -5.0), radius: 0.042, color: Color::new(184, 182, 156, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.78, 1.66, -5.0), radius: 0.05, color: Color::new(182, 196, 184, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.35, 2.21, -5.0), radius: 0.03, color: Color::new(250, 245, 216, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.37, 2.18, -5.0), radius: 0.076, color: Color::new(230, 225, 199, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.49, 2.12, -5.0), radius: 0.034, color: Color::new(169, 168, 143, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.71, 1.64, -5.0), radius: 0.035, color: Color::new(179, 186, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.39, 0.21, -5.0), radius: 0.065, color: Color::new(197, 151, 111, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.27, 0.25, -5.0), radius: 0.084, color: Color::new(193, 143, 102, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.13, 0.24, -5.0), radius: 0.085, color: Color::new(185, 130, 87, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.16, 0.28, -5.0), radius: 0.06, color: Color::new(122, 100, 75, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.28, 0.28, -5.0), radius: 0.08, color: Color::new(105, 88, 65, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.38, 0.24, -5.0), radius: 0.055, color: Color::new(123, 99, 73, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.19, -0.61, -5.0), radius: 0.045, color: Color::new(100, 66, 40, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.17, -0.69, -5.0), radius: 0.048, color: Color::new(107, 77, 50, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.15, -0.77, -5.0), radius: 0.048, color: Color::new(114, 86, 60, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.14, -0.85, -5.0), radius: 0.047, color: Color::new(117, 93, 68, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.22, -0.42, -5.0), radius: 0.03, color: Color::new(135, 119, 87, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.4, -0.56, -5.0), radius: 0.035, color: Color::new(143, 128, 96, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.14, -0.69, -5.0), radius: 0.034, color: Color::new(133, 117, 86, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.95, -0.82, -5.0), radius: 0.025, color: Color::new(145, 129, 99, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.75, -0.38, -5.0), radius: 0.03, color: Color::new(136, 118, 87, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.87, -0.54, -5.0), radius: 0.029, color: Color::new(137, 118, 88, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.7, -0.68, -5.0), radius: 0.028, color: Color::new(142, 123, 94, 255) }),
+
+    Box::new(Sphere { center: Vec3A::new(-1.53, -0.6, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.59, -0.6, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.65, -0.601, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.711, -0.603, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.771, -0.607, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.832, -0.613, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.892, -0.62, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.953, -0.628, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.014, -0.637, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.076, -0.648, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.137, -0.661, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.198, -0.675, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.26, -0.69, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.321, -0.706, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.383, -0.724, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.445, -0.744, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.507, -0.765, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.57, -0.787, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.632, -0.811, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.695, -0.836, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.757, -0.862, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.82, -0.89, -5.0), radius: 0.053, color: Color::new(217, 210, 182, 255) }),
+
+    Box::new(Sphere { center: Vec3A::new(-1.51, -0.91, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.562, -0.92, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.614, -0.93, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.667, -0.942, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.72, -0.955, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.774, -0.968, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.829, -0.983, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.884, -0.999, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.939, -1.015, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.995, -1.033, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.052, -1.051, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.109, -1.071, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.167, -1.091, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.225, -1.113, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.284, -1.135, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.343, -1.158, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.403, -1.183, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.463, -1.208, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.524, -1.234, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.585, -1.262, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.647, -1.29, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.71, -1.319, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.773, -1.349, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.836, -1.381, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.9, -1.413, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.965, -1.446, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-3.03, -1.48, -5.0), radius: 0.054, color: Color::new(209, 203, 174, 255) }),
+
+    // Bigote derecho superior.
+    Box::new(Sphere { center: Vec3A::new(0.83, -0.49, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.889, -0.48, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.948, -0.471, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.008, -0.463, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.067, -0.457, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.126, -0.451, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.186, -0.448, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.246, -0.445, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.305, -0.444, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.365, -0.444, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.425, -0.445, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.485, -0.448, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.545, -0.451, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.605, -0.456, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.665, -0.463, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.726, -0.47, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.786, -0.479, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.846, -0.49, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.907, -0.501, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.968, -0.514, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(2.028, -0.528, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(2.089, -0.543, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(2.15, -0.56, -5.0), radius: 0.05, color: Color::new(212, 199, 164, 255) }),
+
+    // Bigote derecho inferior.
+    Box::new(Sphere { center: Vec3A::new(0.87, -0.75, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.925, -0.756, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.981, -0.763, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.037, -0.771, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.092, -0.78, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.148, -0.791, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.203, -0.802, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.259, -0.815, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.315, -0.828, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.371, -0.843, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.427, -0.858, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.482, -0.875, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.538, -0.893, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.594, -0.912, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.65, -0.932, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.706, -0.953, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.763, -0.975, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.819, -0.998, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.875, -1.022, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.931, -1.048, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.987, -1.074, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(2.044, -1.101, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(2.1, -1.13, -5.0), radius: 0.051, color: Color::new(203, 191, 155, 255) }),
+
+    // Pupilas y reflejos periféricos.
+    Box::new(Sphere { center: Vec3A::new(-2.23, 1.92, -5.0), radius: 0.505, color: Color::new(26, 20, 13, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.2, 1.84, -5.0), radius: 0.48, color: Color::new(28, 20, 13, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.02, 1.57, -5.0), radius: 0.285, color: Color::new(82, 85, 74, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.85, 1.61, -5.0), radius: 0.198, color: Color::new(111, 124, 116, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.44, 1.98, -5.0), radius: 0.46, color: Color::new(24, 19, 12, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.45, 1.89, -5.0), radius: 0.43, color: Color::new(27, 21, 14, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.58, 1.68, -5.0), radius: 0.222, color: Color::new(75, 81, 68, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.71, 1.72, -5.0), radius: 0.146, color: Color::new(112, 121, 104, 255) }),
+
+    // CAPA 2: OJOS, NARIZ Y RASGOS CENTRALES
+    Box::new(Sphere { center: Vec3A::new(-2.2, 1.78, -5.0), radius: 0.591, color: Color::new(46, 34, 20, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.17, 1.88, -5.0), radius: 0.626, color: Color::new(79, 59, 37, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.25, 1.94, -5.0), radius: 0.674, color: Color::new(119, 94, 60, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.46, 1.91, -5.0), radius: 0.538, color: Color::new(45, 35, 21, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.43, 1.99, -5.0), radius: 0.587, color: Color::new(85, 64, 39, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.43, 2.02, -5.0), radius: 0.625, color: Color::new(121, 97, 64, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.46, -0.03, -5.0), radius: 0.135, color: Color::new(58, 28, 13, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.38, -0.06, -5.0), radius: 0.118, color: Color::new(64, 29, 12, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.44, 0.02, -5.0), radius: 0.112, color: Color::new(67, 37, 17, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.4, -0.05, -5.0), radius: 0.116, color: Color::new(75, 39, 17, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.03, -0.45, -5.0), radius: 0.183, color: Color::new(111, 57, 26, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.09, -0.29, -5.0), radius: 0.258, color: Color::new(127, 68, 32, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.11, -0.25, -5.0), radius: 0.24, color: Color::new(139, 80, 42, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.19, 0.05, -5.0), radius: 0.302, color: Color::new(170, 114, 69, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.34, 0.15, -5.0), radius: 0.242, color: Color::new(177, 129, 88, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.09, 0.13, -5.0), radius: 0.319, color: Color::new(160, 103, 59, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.36, 0.13, -5.0), radius: 0.255, color: Color::new(151, 99, 57, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.43, 0.09, -5.0), radius: 0.258, color: Color::new(154, 105, 65, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.01, -0.17, -5.0), radius: 0.395, color: Color::new(145, 86, 42, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.01, -0.43, -5.0), radius: 0.227, color: Color::new(122, 64, 28, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.51, 1.65, -5.0), radius: 0.093, color: Color::new(123, 106, 75, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.43, 1.7, -5.0), radius: 0.055, color: Color::new(141, 118, 81, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.89, 1.68, -5.0), radius: 0.073, color: Color::new(135, 112, 75, 255) }),
+
+    // CAPA 3: HOCICO, MEJILLAS, FRENTE Y SOMBRAS
+    Box::new(Sphere { center: Vec3A::new(-0.4, -0.96, -5.0), radius: 0.18, color: Color::new(180, 166, 135, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.2, -0.92, -5.0), radius: 0.165, color: Color::new(175, 159, 126, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.73, -0.58, -5.0), radius: 0.491, color: Color::new(208, 198, 165, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.13, -0.69, -5.0), radius: 0.659, color: Color::new(211, 203, 173, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.59, -0.71, -5.0), radius: 0.582, color: Color::new(203, 194, 161, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.91, -0.64, -5.0), radius: 0.434, color: Color::new(192, 180, 144, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.59, -0.56, -5.0), radius: 0.471, color: Color::new(202, 188, 151, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.9, -0.66, -5.0), radius: 0.474, color: Color::new(191, 177, 139, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.54, -1.02, -5.0), radius: 0.51, color: Color::new(184, 175, 143, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.35, -1.03, -5.0), radius: 0.414, color: Color::new(173, 157, 121, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.15, -1.04, -5.0), radius: 0.615, color: Color::new(195, 189, 160, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.63, -1.01, -5.0), radius: 0.494, color: Color::new(191, 183, 153, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.44, 0.65, -5.0), radius: 0.465, color: Color::new(212, 196, 157, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.08, 0.65, -5.0), radius: 0.34, color: Color::new(207, 188, 147, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.32, 0.59, -5.0), radius: 0.312, color: Color::new(198, 175, 130, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.72, 0.95, -5.0), radius: 0.445, color: Color::new(216, 201, 163, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.02, 1.17, -5.0), radius: 0.365, color: Color::new(214, 201, 164, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.5, 1.34, -5.0), radius: 0.466, color: Color::new(218, 203, 165, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.21, 1.09, -5.0), radius: 0.366, color: Color::new(207, 190, 150, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.48, 1.33, -5.0), radius: 0.303, color: Color::new(213, 196, 153, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.31, 1.01, -5.0), radius: 0.407, color: Color::new(200, 183, 139, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.85, 1.05, -5.0), radius: 0.315, color: Color::new(211, 196, 157, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.64, 0.86, -5.0), radius: 0.359, color: Color::new(192, 174, 128, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.15, 0.55, -5.0), radius: 0.451, color: Color::new(205, 188, 145, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.39, 1.15, -5.0), radius: 0.32, color: Color::new(197, 179, 132, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.8, 1.15, -5.0), radius: 0.295, color: Color::new(185, 165, 118, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.45, 0.76, -5.0), radius: 0.42, color: Color::new(205, 187, 142, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.89, 0.59, -5.0), radius: 0.378, color: Color::new(188, 170, 124, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.48, 2.46, -5.0), radius: 0.224, color: Color::new(148, 120, 78, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.23, 2.56, -5.0), radius: 0.22, color: Color::new(160, 132, 87, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.99, 2.48, -5.0), radius: 0.185, color: Color::new(176, 148, 102, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.2, 2.53, -5.0), radius: 0.213, color: Color::new(163, 134, 88, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.44, 2.59, -5.0), radius: 0.204, color: Color::new(151, 124, 82, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.65, 2.46, -5.0), radius: 0.181, color: Color::new(160, 132, 85, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.81, 2.37, -5.0), radius: 0.281, color: Color::new(185, 165, 119, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.85, 2.72, -5.0), radius: 0.255, color: Color::new(184, 163, 115, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.95, 3.02, -5.0), radius: 0.205, color: Color::new(180, 159, 110, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.13, 3.18, -5.0), radius: 0.157, color: Color::new(173, 151, 102, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.48, 2.7, -5.0), radius: 0.337, color: Color::new(222, 207, 169, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.31, 2.3, -5.0), radius: 0.321, color: Color::new(220, 205, 166, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.35, 2.37, -5.0), radius: 0.17, color: Color::new(204, 185, 138, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.51, 2.67, -5.0), radius: 0.144, color: Color::new(197, 174, 122, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.4, 2.64, -5.0), radius: 0.174, color: Color::new(192, 169, 119, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.51, 2.86, -5.0), radius: 0.143, color: Color::new(185, 159, 109, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.58, 0.13, -5.0), radius: 0.506, color: Color::new(189, 173, 133, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.48, -0.49, -5.0), radius: 0.439, color: Color::new(192, 181, 145, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.77, -0.06, -5.0), radius: 0.45, color: Color::new(185, 165, 119, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.46, -0.94, -5.0), radius: 0.41, color: Color::new(155, 134, 94, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.09, -1.58, -5.0), radius: 0.573, color: Color::new(133, 116, 87, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.46, -1.91, -5.0), radius: 0.74, color: Color::new(159, 145, 114, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.18, -1.83, -5.0), radius: 0.766, color: Color::new(190, 184, 156, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.95, -1.57, -5.0), radius: 0.632, color: Color::new(198, 191, 163, 255) }),
+
+    // CAPA 4: BASE ANATÓMICA Y VOLÚMENES PRINCIPALES
+    Box::new(Sphere { center: Vec3A::new(-2.91, 3.79, -5.0), radius: 0.177, color: Color::new(162, 150, 121, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.74, 3.6, -5.0), radius: 0.27, color: Color::new(155, 144, 116, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.56, 3.37, -5.0), radius: 0.358, color: Color::new(165, 151, 119, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.37, 3.1, -5.0), radius: 0.437, color: Color::new(184, 169, 132, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.97, 3.78, -5.0), radius: 0.163, color: Color::new(150, 132, 101, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.81, 3.57, -5.0), radius: 0.25, color: Color::new(157, 138, 105, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.66, 3.32, -5.0), radius: 0.35, color: Color::new(171, 151, 113, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.44, 3.04, -5.0), radius: 0.437, color: Color::new(191, 170, 129, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.62, 2.0, -5.0), radius: 1.373, color: Color::new(211, 196, 158, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.63, 2.58, -5.0), radius: 0.784, color: Color::new(209, 196, 160, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.54, 2.42, -5.0), radius: 0.972, color: Color::new(205, 189, 148, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.05, 1.72, -5.0), radius: 1.19, color: Color::new(202, 186, 144, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.18, 1.55, -5.0), radius: 1.156, color: Color::new(196, 178, 135, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.78, 0.28, -5.0), radius: 1.509, color: Color::new(203, 188, 149, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.66, 0.2, -5.0), radius: 1.336, color: Color::new(194, 176, 133, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-1.0, -0.7, -5.0), radius: 1.62, color: Color::new(192, 182, 149, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.01, -1.45, -5.0), radius: 1.204, color: Color::new(143, 125, 91, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.46, -2.1, -5.0), radius: 0.874, color: Color::new(205, 202, 177, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-2.08, -2.91, -5.0), radius: 1.314, color: Color::new(202, 202, 178, 255) }),
+    Box::new(Sphere { center: Vec3A::new(-0.98, -3.32, -5.0), radius: 1.591, color: Color::new(187, 185, 155, 255) }),
+    Box::new(Sphere { center: Vec3A::new(0.62, -3.29, -5.0), radius: 1.32, color: Color::new(141, 125, 91, 255) }),
+    Box::new(Sphere { center: Vec3A::new(1.4, -2.31, -5.0), radius: 1.3, color: Color::new(133, 112, 76, 255) }),
+
+
+];
+
+    while !rl.window_should_close() {
+        
+        // Renderizar la escena
+        render(&mut framebuffer, &objects);
+
+        // Mostrar el framebuffer en la ventana
+        framebuffer.swap_buffers(&mut rl, &thread);
+    }
+
+
 }
