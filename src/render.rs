@@ -4,7 +4,8 @@ use glam::Vec3A;
 use crate::caster::RayIntersect;
 
 
-pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>]) {
+
+pub fn render(framebuffer: &mut Framebuffer, objects: &[impl RayIntersect]) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
@@ -35,10 +36,5 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>]) 
 
 
 fn normalize(v: &Vec3A) -> Vec3A {
-    let length = v.length();
-    if length > 0.0 {
-        *v / length
-    } else {
-        *v
-    }
+    v.normalize()
 }  

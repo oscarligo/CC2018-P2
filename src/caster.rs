@@ -12,7 +12,7 @@ pub trait RayIntersect{
 
 pub fn cast_ray(
     ray: &Ray,
-    objects: &[Box<dyn RayIntersect>]
+    objects: &[impl RayIntersect]
 
 ) -> Color {
 
