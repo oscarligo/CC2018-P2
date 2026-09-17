@@ -1,17 +1,15 @@
-use crate::caster::RayIntersect;
+use crate::caster::{Intersection, RayIntersect, Material};
 use glam::Vec3A;
 use crate::caster::Ray;
-use raylib::prelude::Color;
-
 
 pub struct Sphere {
     pub center: Vec3A,
     pub radius: f32,
-    pub color: Color,
+    pub material: Material,
 }
 
 impl RayIntersect for Sphere {
-    fn intersect(&self, ray: &Ray) -> bool {
+    fn intersect(&self, ray: &Ray) -> Intersection {
         // Vector from the ray origin to the sphere center
         let oc = ray.origin - self.center;
         // Sphere intersection equation: (P - C) . (P - C) = r^2
@@ -24,10 +22,16 @@ impl RayIntersect for Sphere {
 
         // Discriminant of the quadratic equation
         let discriminant = b * b - 4.0 * a * c;
-        discriminant >= 0.0
+        Intersection {
+            distance: if discriminant < 0.0 {
+                f32::INFINITY
+            } else {
+                (-b - discriminant.sqrt()) / (2.0 * a)
+            },
+            is_intersecting: discriminant >= 0.0,
+            material: self.material.clone(),
+        }
     }
 
-    fn get_color(&self) -> Color {
-        self.color
-    }
+    
 }

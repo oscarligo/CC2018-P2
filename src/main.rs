@@ -22,21 +22,26 @@ fn main() {
 
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
 
+    let stone = caster::Material {
+        diffuse: Color::new(200, 200, 200, 255),
+        specular: Color::new(255, 255, 255, 255),
+    };
+
     let objects: Vec<Sphere> = vec![
         Sphere {
             center: Vec3A::new(0.0, 0.0, -5.0),
             radius: 1.0,
-            color: Color::RED,
+            material: stone,
         },
         Sphere {
             center: Vec3A::new(4.0, 4.0, -6.0),
             radius: 1.0,
-            color: Color::GREEN,
+            material: stone,
         },
         Sphere {
             center: Vec3A::new(0.0, 0.0, -4.0),
             radius: 1.0,
-            color: Color::BLUE,
+            material: stone,
         },
         
     ];
