@@ -1,4 +1,5 @@
-use crate::caster::{Intersection, RayIntersect, Material};
+use crate::caster::{Intersection, RayIntersect};
+use crate::material::Material;
 use glam::Vec3A;
 use crate::caster::Ray;
 
@@ -22,14 +23,17 @@ impl RayIntersect for Sphere {
 
         // Discriminant of the quadratic equation
         let discriminant = b * b - 4.0 * a * c;
-        Intersection {
-            distance: if discriminant < 0.0 {
-                f32::INFINITY
-            } else {
-                (-b - discriminant.sqrt()) / (2.0 * a)
-            },
-            is_intersecting: discriminant >= 0.0,
-            material: self.material.clone(),
+        if discriminant < 0.0 {
+            // No intersection
+            return Intersection::no_intersection();
+        } else {
+            Intersection::new(
+                (-b - discriminant.sqrt()) / (2.0 * a),
+                ray.origin + ray.direction * ((-b - discriminant.sqrt()) / (2.0 * a)),
+                (ray.origin + ray.direction * ((-b - discriminant.sqrt()) / (2.0 * a)) - self.center).normalize(),
+                true,
+                self.material,
+            )
         }
     }
 

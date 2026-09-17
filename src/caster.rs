@@ -30,7 +30,7 @@ impl Intersection {
             point: Vec3A::ZERO,
             normal: Vec3A::ZERO,
             is_intersecting: false,
-            material: Material::no_intersection(),
+            material: Material::empty(),
         }
     }
 }

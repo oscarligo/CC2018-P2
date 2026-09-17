@@ -1,40 +1,33 @@
+use crate::caster::{cast_ray, Ray, RayIntersect};
 use crate::framebuffer::Framebuffer;
-use crate::caster::{cast_ray, Ray};
 use glam::Vec3A;
-use crate::caster::RayIntersect;
 
-
-
-pub fn render(framebuffer: &mut Framebuffer, objects: &[impl RayIntersect]) {
+pub fn render(
+    framebuffer: &mut Framebuffer,
+    objects: &[impl RayIntersect + Sync],
+    fov_degrees: f32,
+) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
 
-    for y in 0..framebuffer.height {
-        for x in 0..framebuffer.width {
-            // Map the pixel coordinate to screen space [-1, 1]
-            let screen_x = (2.0 * x as f32) / width - 1.0;
-            let screen_y = -(2.0 * y as f32) / height + 1.0;
+    // Escala basada en el FOV vertical
+    let fov_scale = (fov_degrees.to_radians() * 0.5).tan();
+    let ray_origin = Vec3A::ZERO;
 
-            // Adjust for aspect ratio
-            let screen_x = screen_x * aspect_ratio;
+    // Paralelización por filas en CPU: cada hilo procesa un bloque de píxeles
+    framebuffer.render_parallel(|x, y| {
+        // Mapear al centro del píxel en coordenadas normalizadas [-1.0, 1.0]
+        let screen_x = ((2.0 * (x as f32 + 0.5)) / width - 1.0) * aspect_ratio * fov_scale;
+        let screen_y = (1.0 - (2.0 * (y as f32 + 0.5)) / height) * fov_scale;
 
-            // Calculate the direction of the ray for this pixel
-            let ray_direction = normalize(&Vec3A::new(screen_x, screen_y, -1.0));
-            let ray_origin = Vec3A::new(0.0, 0.0, 0.0);
-            let ray = Ray { origin: ray_origin, direction: ray_direction };
+        // glam ya provee .normalize() nativo altamente optimizado con SIMD
+        let ray_direction = Vec3A::new(screen_x, screen_y, -1.0).normalize();
+        let ray = Ray {
+            origin: ray_origin,
+            direction: ray_direction,
+        };
 
-            // Cast the ray and get the pixel color
-            let pixel_color = cast_ray(&ray, objects);
-
-            // Draw the pixel on screen with the returned color
-            framebuffer.set_pixel_color(x, y, pixel_color);
-    
-        }
-    }
+        cast_ray(&ray, objects)
+    });
 }
-
-
-fn normalize(v: &Vec3A) -> Vec3A {
-    v.normalize()
-}  

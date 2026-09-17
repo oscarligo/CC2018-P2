@@ -2,12 +2,16 @@ mod framebuffer;
 mod render;
 mod caster;
 mod sphere;
+mod camera;
+mod material;
 
 use framebuffer::Framebuffer;
 use render::render;
 use sphere::Sphere;
 use glam::Vec3A;
 use raylib::prelude::*;
+use camera::Camera;
+use material::Material;
 
 
 
@@ -22,9 +26,18 @@ fn main() {
 
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
 
-    let stone = caster::Material {
-        diffuse: Color::new(200, 200, 200, 255),
-        specular: Color::new(255, 255, 255, 255),
+    let stone = Material {
+        diffuse_color: Vec3A::new(0.8, 0.8, 0.8),
+        albedo: [0.8, 0.2, 0.0, 0.0],
+        specular_exponent: 100.0,
+        refractive_index: 1.5,
+    };
+
+    let ruby = Material {
+        diffuse_color: Vec3A::new(0.9, 0.1, 0.1),
+        albedo: [0.6, 0.3, 0.1, 0.0],
+        specular_exponent: 500.0,
+        refractive_index: 1.5,
     };
 
     let objects: Vec<Sphere> = vec![
@@ -39,9 +52,9 @@ fn main() {
             material: stone,
         },
         Sphere {
-            center: Vec3A::new(0.0, 0.0, -4.0),
+            center: Vec3A::new(-1.0, 0.0, -4.0),
             radius: 1.0,
-            material: stone,
+            material: ruby,
         },
         
     ];
@@ -49,7 +62,7 @@ fn main() {
     while !rl.window_should_close() {
         
         // Renderizar la escena
-        render(&mut framebuffer, &objects);
+        render(&mut framebuffer, &objects, 70.0);
 
         // Mostrar el framebuffer en la ventana
         framebuffer.swap_buffers(&mut rl, &thread);

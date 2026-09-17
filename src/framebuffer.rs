@@ -20,6 +20,7 @@ impl Framebuffer {
     ) -> Self {
         let total_pixels = (width * height) as usize;
         let pixels = vec![background_color; total_pixels];
+
         let img = Image::gen_image_color(width as i32, height as i32, background_color);
         let texture = window
             .load_texture_from_image(raylib_thread, &img)
@@ -72,6 +73,16 @@ impl Framebuffer {
         } else {
             self.background_color
         }
+    }
+
+    #[inline(always)]
+    pub fn as_slice(&self) -> &[Color] {
+        &self.pixels
+    }
+
+    #[inline(always)]
+    pub fn as_mut_slice(&mut self) -> &mut [Color] {
+        &mut self.pixels
     }
 
     pub fn swap_buffers(&mut self, window: &mut RaylibHandle, raylib_thread: &RaylibThread) {
