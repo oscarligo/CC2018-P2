@@ -1,6 +1,5 @@
 use raylib::prelude::*;
 use rayon::prelude::*;
-
 pub struct Framebuffer {
     pub width: u32,
     pub height: u32,
