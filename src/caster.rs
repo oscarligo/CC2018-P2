@@ -1,6 +1,7 @@
 use glam::Vec3A;
 use crate::material::*;
 use crate::render::RenderMode;
+use crate::background::BackgroundTexture;
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -11,7 +12,6 @@ pub struct Intersection {
     pub is_intersecting: bool,
     pub material: Material,
 }
-
 
 impl Intersection {
     pub fn new(distance: f32, point: Vec3A, normal: Vec3A, is_intersecting: bool, material: Material) -> Self {
@@ -40,7 +40,7 @@ pub struct Ray {
     pub direction: Vec3A,
 }
 
-pub trait RayIntersect{
+pub trait RayIntersect: Sync + Send {
     fn intersect(&self, ray: &Ray) -> Intersection; 
 }
 
@@ -49,6 +49,7 @@ pub fn cast_ray(
     objects: &[impl RayIntersect + Sync],
     lights: &[Light],
     mode: RenderMode, 
+    background: &BackgroundTexture,
 ) -> Vec3A {
     let mut intersection = Intersection::no_intersection();
     let mut z_buffer = f32::INFINITY;
@@ -64,8 +65,9 @@ pub fn cast_ray(
         }
     }
 
+    // Fondo para rayos primarios
     if !intersection.is_intersecting {
-        return Vec3A::new(0.2, 0.7, 0.8); 
+        return background.sample(&ray.direction);
     }
 
     match mode {
@@ -83,16 +85,16 @@ pub fn cast_ray(
             intersection.material.diffuse_color * light_sum
         }
 
-        
-        RenderMode::Full => cast_ray_recursive(ray, objects, lights, 0, &intersection),
+        // Se pasa background a la recursión
+        RenderMode::Full => cast_ray_recursive(ray, objects, lights, background, 0, &intersection),
     }
 }
-
 
 fn cast_ray_recursive(
     ray: &Ray,
     objects: &[impl RayIntersect + Sync],
     lights: &[Light],
+    background: &BackgroundTexture,
     depth: u32,
     hit: &Intersection,
 ) -> Vec3A {
@@ -118,11 +120,12 @@ fn cast_ray_recursive(
                 }
             }
 
+            // Los rayos de espejo o vidrio que escapan al infinito toman el fondo HDR
             if !sec_hit.is_intersecting {
-                return Vec3A::new(0.2, 0.7, 0.8);
+                return background.sample(&secondary_ray.direction);
             }
 
-            cast_ray_recursive(secondary_ray, objs, lts, next_depth, &sec_hit)
+            cast_ray_recursive(secondary_ray, objs, lts, background, next_depth, &sec_hit)
         },
     )
 }

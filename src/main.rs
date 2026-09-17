@@ -6,6 +6,7 @@ mod framebuffer;
 mod material;
 mod render;
 mod sphere;
+mod background;
 
 use camera::Camera;
 use cube::Cube;
@@ -16,6 +17,7 @@ use material::{Light, Material};
 use raylib::prelude::*;
 use caster::RayIntersect;
 use render::{render, RenderMode};
+use background::BackgroundTexture;
 
 use crate::sphere::Sphere;
 
@@ -35,6 +37,8 @@ fn main() {
         Vec3A::new(0.0, 0.0, -5.0),
         Vec3A::new(0.0, 1.0, 0.0),
     );
+
+    let background_texture = BackgroundTexture::load_hdr("assets/nebula.hdr");
 
     let mut render_mode = RenderMode::Full;
 
@@ -95,11 +99,7 @@ fn main() {
     };
 
     let objects: Vec<Sphere> = vec![
-        Sphere {
-            center: Vec3A::new(0.0, -1001.0, -6.0),
-            radius: 1000.0,
-            material: ground,
-        },
+        
         Sphere {
             center: Vec3A::new(0.0, 0.0, -6.0),
             radius: 1.0,
@@ -164,13 +164,13 @@ fn main() {
 
     let event_handler = EventHandler::new(2.0, 0.5, 0.005);
 
-    render(&mut framebuffer, &objects, &lights, &camera, 60.0, render_mode);
+    render(&mut framebuffer, &objects, &lights, &camera, 60.0, render_mode, &background_texture);
 
     while !rl.window_should_close() {
         let changed = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
 
         if changed {
-            render(&mut framebuffer, &objects, &lights, &camera, 60.0, render_mode);
+            render(&mut framebuffer, &objects, &lights, &camera, 60.0, render_mode, &background_texture);
         }
 
         framebuffer.swap_buffers(&mut rl, &thread);

@@ -4,6 +4,7 @@ use raylib::prelude::*;
 use glam::Vec3A;
 use crate::camera::Camera;
 use crate::material::Light;
+use crate::background::{self, BackgroundTexture};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenderMode {
@@ -30,6 +31,7 @@ pub fn render(
     camera: &Camera,
     fov_degrees: f32,
     mode: RenderMode,
+    background: &BackgroundTexture,
 ) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
@@ -52,7 +54,7 @@ pub fn render(
             direction: ray_direction,
         };
 
-        let color = cast_ray(&ray, objects, lights, mode);
+        let color = cast_ray(&ray, objects, lights, mode, background);
         vec3_to_color(color)
     });
 }

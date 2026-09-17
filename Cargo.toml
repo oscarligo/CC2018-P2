@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 raylib = { version = "6.0.0", features = ["SUPPORT_IMAGE_GENERATION"] }
-image = "0.25"
+image = { version = "0.25", default-features = false, features = ["hdr"] }
 glam = "0.33.7"
 rayon = "1.12.0"
