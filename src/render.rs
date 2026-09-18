@@ -4,7 +4,13 @@ use raylib::prelude::*;
 use glam::Vec3A;
 use crate::camera::Camera;
 use crate::material::Light;
-use crate::background::{self, BackgroundTexture};
+use crate::background::BackgroundTexture;
+use crate::texture::Texture;
+
+/*
+    This module contains the rendering logic for the 3D scene.
+    It handles the different rendering modes and the conversion of 3D vectors to colors.
+*/
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RenderMode {
@@ -32,6 +38,7 @@ pub fn render(
     fov_degrees: f32,
     mode: RenderMode,
     background: &BackgroundTexture,
+    textures: &[Texture]
 ) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
@@ -42,7 +49,6 @@ pub fn render(
 
     
     framebuffer.render_parallel(|x, y| {
-        // Convert pixel coordinates to normalized device coordinates (NDC)
         let screen_x = ((2.0 * (x as f32 + 0.5)) / width - 1.0) * aspect_ratio * fov_scale;
         let screen_y = (1.0 - (2.0 * (y as f32 + 0.5)) / height) * fov_scale;
 
@@ -54,7 +60,7 @@ pub fn render(
             direction: ray_direction,
         };
 
-        let color = cast_ray(&ray, objects, lights, mode, background);
+        let color = cast_ray(&ray, objects, lights, mode, background, textures);
         vec3_to_color(color)
     });
 }

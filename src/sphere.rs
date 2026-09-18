@@ -33,6 +33,9 @@ impl RayIntersect for Sphere {
                 (ray.origin + ray.direction * ((-b - discriminant.sqrt()) / (2.0 * a)) - self.center).normalize(),
                 true,
                 self.material,
+                (0.0, 0.0), // Placeholder for UV coordinates
+                Vec3A::ZERO, // Placeholder for tangent
+                Vec3A::ZERO, // Placeholder for bitangent
             )
         }
     }
