@@ -16,6 +16,7 @@ pub struct Texture {
 
 impl Texture {
     // Empty texture constructor for cases where no texture is provided
+    #[allow(dead_code)]
     pub fn empty() -> Self {
         Self {
             width: 0,

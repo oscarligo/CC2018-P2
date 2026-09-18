@@ -9,12 +9,6 @@ pub struct EventHandler {
 }
 
 impl EventHandler {
-    pub fn new(mouse_sensitivity: f32, zoom_speed: f32) -> Self {
-        Self {
-            mouse_sensitivity,
-            zoom_speed,
-        }
-    }
 
     pub fn handle_events(
         &self,

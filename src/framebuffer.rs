@@ -4,8 +4,6 @@ pub struct Framebuffer {
     pub width: u32,
     pub height: u32,
     pub pixels: Vec<Color>,
-    background_color: Color,
-    current_color: Color,
     texture: Texture2D,
 }
 
@@ -29,24 +27,10 @@ impl Framebuffer {
             width,
             height,
             pixels,
-            background_color,
-            current_color: Color::WHITE,
             texture,
         }
     }
 
-    #[inline(always)]
-    pub fn clear(&mut self) {
-        self.pixels.fill(self.background_color);
-    }
-
-    #[inline(always)]
-    pub fn set_pixel(&mut self, x: u32, y: u32) {
-        if x < self.width && y < self.height {
-            let index = (y * self.width + x) as usize;
-            self.pixels[index] = self.current_color;
-        }
-    }
 
     #[inline(always)]
     pub fn set_pixel_color(&mut self, x: u32, y: u32, color: Color) {
@@ -54,34 +38,6 @@ impl Framebuffer {
             let index = (y * self.width + x) as usize;
             self.pixels[index] = color;
         }
-    }
-
-    pub fn set_current_color(&mut self, color: Color) {
-        self.current_color = color;
-    }
-
-    pub fn set_background_color(&mut self, color: Color) {
-        self.background_color = color;
-        self.clear();
-    }
-
-    #[inline(always)]
-    pub fn get_pixel(&self, x: u32, y: u32) -> Color {
-        if x < self.width && y < self.height {
-            self.pixels[(y * self.width + x) as usize]
-        } else {
-            self.background_color
-        }
-    }
-
-    #[inline(always)]
-    pub fn as_slice(&self) -> &[Color] {
-        &self.pixels
-    }
-
-    #[inline(always)]
-    pub fn as_mut_slice(&mut self) -> &mut [Color] {
-        &mut self.pixels
     }
 
     pub fn swap_buffers(&mut self, window: &mut RaylibHandle, raylib_thread: &RaylibThread) {
@@ -92,7 +48,8 @@ impl Framebuffer {
             )
         };
 
-        self.texture.update_texture(bytes);
+        
+        let _ = self.texture.update_texture(bytes);
 
         let mut renderer = window.begin_drawing(raylib_thread);
         renderer.clear_background(Color::BLACK);

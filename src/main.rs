@@ -6,7 +6,6 @@ mod events;
 mod framebuffer;
 mod material;
 mod render;
-mod sphere;
 mod texture;
 
 use background::BackgroundTexture;
@@ -23,6 +22,8 @@ use texture::Texture;
 fn main() {
     let width = 1024;
     let height = 720;
+
+    let paralel_rendering = true;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -289,6 +290,7 @@ fn main() {
         render_mode,
         &background_texture,
         &textures,
+        paralel_rendering
     );
 
     while !rl.window_should_close() {
@@ -304,6 +306,7 @@ fn main() {
                 render_mode,
                 &background_texture,
                 &textures,
+                paralel_rendering
             );
         }
 
