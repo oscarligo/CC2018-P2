@@ -1,4 +1,4 @@
-use glam::Vec3A;
+use glam::{Quat, Vec3A};
 
 pub struct Camera {
     pub eye: Vec3A,
@@ -27,35 +27,65 @@ impl Camera {
 
     pub fn update_basis_vectors(&mut self) {
         self.forward = (self.center - self.eye).normalize();
-        self.right = self.forward.cross(self.up).normalize();
+        let world_up = Vec3A::Y;
+        let right = self.forward.cross(world_up);
+    
+        self.right = if right.length_squared() > 1e-6 {
+            right.normalize()
+        } else {
+            self.right
+        };
+        
         self.up = self.right.cross(self.forward).normalize();
         self.changed = true;
     }
 
-
-
     pub fn orbit(&mut self, yaw: f32, pitch: f32) {
-        let relative_pos = self.eye - self.center;
-        let radius = relative_pos.length();
-        let current_yaw = relative_pos.z.atan2(relative_pos.x);
-        let current_pitch = (relative_pos.y / radius).asin();
+        let mut offset = self.eye - self.center;
+
+        let q_yaw = Quat::from_axis_angle(Vec3A::Y.into(), yaw);
+        offset = q_yaw * offset;
+
+        let current_dir = offset.normalize();
+        let up_dot = current_dir.dot(Vec3A::Y);
         
-        let new_yaw = current_yaw + yaw;
-        let new_pitch = (current_pitch + pitch).clamp(-1.5, 1.5); 
-        let cos_pitch = new_pitch.cos();
-        let sin_pitch = new_pitch.sin();
-        let new_relative_pos = Vec3A::new(
-            radius * cos_pitch * new_yaw.cos(),  
-            radius * sin_pitch,                  
-            radius * cos_pitch * new_yaw.sin(),  
-        );
-        self.eye = self.center + new_relative_pos;
+        let safe_pitch = if (up_dot > 0.98 && pitch < 0.0) || (up_dot < -0.98 && pitch > 0.0) {
+            0.0
+        } else {
+            pitch
+        };
+
+        let q_pitch = Quat::from_axis_angle(self.right.into(), safe_pitch);
+        offset = q_pitch * offset;
+
+        self.eye = self.center + offset;
         self.update_basis_vectors();
     }
 
+    pub fn pan(&mut self, delta_x: f32, delta_y: f32) {
+        let dist = (self.eye - self.center).length();
+        let factor = (dist * 0.002).max(0.01);
+
+        let translation = (-self.right * delta_x + self.up * delta_y) * factor;
+        self.eye += translation;
+        self.center += translation;
+        self.changed = true;
+    }
+
     pub fn zoom(&mut self, amount: f32) {
-        let forward = (self.center - self.eye).normalize();
-        self.eye += forward * amount;
+        let to_center = self.center - self.eye;
+        let dist = to_center.length();
+
+        let delta = dist * amount;
+
+        if dist - delta > 0.05 {
+            self.eye += to_center.normalize() * delta;
+        } else {
+            let forward = to_center.normalize();
+            self.eye += forward * delta;
+            self.center += forward * delta;
+        }
+
         self.update_basis_vectors();
     }
 
@@ -65,6 +95,7 @@ impl Camera {
         changed
     }
 
+    #[inline(always)]
     pub fn basis_change(&self, v: &Vec3A) -> Vec3A {
         Vec3A::new(
             v.x * self.right.x + v.y * self.up.x - v.z * self.forward.x,

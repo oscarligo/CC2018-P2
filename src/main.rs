@@ -97,53 +97,103 @@ fn main() {
         refractive_index: 1.0,
     };
 
-    let objects: Vec<Sphere> = vec![
+    // let objects: Vec<Sphere> = vec![
         
-        Sphere {
+    //     Sphere {
+    //         center: Vec3A::new(0.0, 0.0, -6.0),
+    //         radius: 1.0,
+    //         material: chrome,
+    //     },
+
+    //     Sphere {
+    //         center: Vec3A::new(-2.2, -0.3, -4.8),
+    //         radius: 0.7,
+    //         material: glass,
+    //     },
+
+    //     Sphere {
+    //         center: Vec3A::new(1.9, -0.2, -4.5),
+    //         radius: 0.8,
+    //         material: ruby,
+    //     },
+
+    //     Sphere {
+    //         center: Vec3A::new(-3.6, 1.2, -8.0),
+    //         radius: 1.1,
+    //         material: gold,
+    //     },
+
+    //     Sphere {
+    //         center: Vec3A::new(-0.8, -0.6, -3.2),
+    //         radius: 0.4,
+    //         material: emerald,
+    //     },
+
+    //     Sphere {
+    //         center: Vec3A::new(3.8, 1.0, -8.5),
+    //         radius: 1.3,
+    //         material: stone,
+    //     },
+
+    //     Sphere {
+    //         center: Vec3A::new(0.8, 1.6, -7.5),
+    //         radius: 0.6,
+    //         material: copper,
+    //     },
+
+    //     Sphere {
+    //         center: Vec3A::new(1.1, -0.65, -3.0),
+    //         radius: 0.35,
+    //         material: glass,
+    //     },
+    // ];
+
+    let objects: Vec<Cube> = vec![
+        Cube {
             center: Vec3A::new(0.0, 0.0, -6.0),
-            radius: 1.0,
+            size: 2.0, 
             material: chrome,
         },
-
-        Sphere {
+        
+        Cube {
             center: Vec3A::new(-2.2, -0.3, -4.8),
-            radius: 0.7,
+            size: 1.4,
             material: glass,
         },
 
-        Sphere {
+        Cube {
             center: Vec3A::new(1.9, -0.2, -4.5),
-            radius: 0.8,
+            size: 1.6,
             material: ruby,
         },
 
-        Sphere {
+        Cube {
             center: Vec3A::new(-3.6, 1.2, -8.0),
-            radius: 1.1,
+            size: 2.2,
             material: gold,
         },
 
-        Sphere {
+        Cube {
             center: Vec3A::new(-0.8, -0.6, -3.2),
-            radius: 0.4,
+            size: 0.8,
             material: emerald,
         },
 
-        Sphere {
+        Cube {
             center: Vec3A::new(3.8, 1.0, -8.5),
-            radius: 1.3,
+            size: 2.6,
             material: stone,
         },
 
-        Sphere {
+        Cube {
             center: Vec3A::new(0.8, 1.6, -7.5),
-            radius: 0.6,
+            size: 1.2,
             material: copper,
         },
 
-        Sphere {
+        Cube {
             center: Vec3A::new(1.1, -0.65, -3.0),
-            radius: 0.35,
+            size: 0.7,
             material: glass,
         },
     ];
