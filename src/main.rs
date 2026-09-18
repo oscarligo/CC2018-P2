@@ -15,7 +15,6 @@ use framebuffer::Framebuffer;
 use glam::Vec3A;
 use material::{Light, Material};
 use raylib::prelude::*;
-use caster::RayIntersect;
 use render::{render, RenderMode};
 use background::BackgroundTexture;
 
@@ -38,7 +37,7 @@ fn main() {
         Vec3A::new(0.0, 1.0, 0.0),
     );
 
-    let background_texture = BackgroundTexture::load_hdr("assets/nebula.hdr");
+    let background_texture = BackgroundTexture::load("assets/sky.png");
 
     let mut render_mode = RenderMode::Full;
 
@@ -162,7 +161,7 @@ fn main() {
         },
     ];
 
-    let event_handler = EventHandler::new(2.0, 0.5, 0.005);
+    let event_handler = EventHandler::new(0.005, 0.15);
 
     render(&mut framebuffer, &objects, &lights, &camera, 60.0, render_mode, &background_texture);
 
