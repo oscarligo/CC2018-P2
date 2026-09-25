@@ -4,13 +4,15 @@ use crate::render::RenderMode;
 use crate::textures::background::BackgroundTexture;
 use crate::textures::texture::Texture;
 
-
 /*
     This module defines the core raycasting logic for the 3D scene.
     It includes the Intersection struct, Ray struct, and the RayIntersect trait.
     The cast_ray function handles ray-object intersections and shading based on 
     the selected render mode.
 */
+
+const BIAS: f32 = 0.001;
+const MAX_RECURSION_DEPTH: u32 = 3;
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
@@ -26,8 +28,6 @@ pub struct Intersection {
 }
 
 impl Intersection {
-
-    // Creates a new Intersection instance with the provided parameters.
     #[inline(always)]
     pub fn new(
         distance: f32,
@@ -51,7 +51,6 @@ impl Intersection {
         }
     }
 
-    // Returns an Intersection instance representing no intersection.
     #[inline(always)]
     pub fn no_intersection() -> Self {
         Self {
@@ -67,15 +66,44 @@ impl Intersection {
     }
 }
 
-// Represents a ray in 3D space with an origin and direction.
+// Defines a ray in 3D space with an origin, direction, and precomputed inverse direction for efficient intersection tests.
+#[derive(Clone, Copy)]
 pub struct Ray {
     pub origin: Vec3A,
     pub direction: Vec3A,
+    pub inv_direction: Vec3A,
+}
+
+impl Ray {
+    #[inline(always)]
+    pub fn new(origin: Vec3A, direction: Vec3A) -> Self {
+        Self {
+            origin,
+            direction,
+            inv_direction: Vec3A::splat(1.0) / direction,
+        }
+    }
 }
 
 // Defines the interface for objects that can be intersected by a ray.
 pub trait RayIntersect: Sync + Send {
     fn intersect(&self, ray: &Ray) -> Intersection; 
+}
+
+#[inline(always)]
+fn find_closest_hit(ray: &Ray, objects: &[impl RayIntersect + Sync]) -> Intersection {
+    let mut intersection = Intersection::no_intersection();
+    let mut z_buffer = f32::INFINITY;
+
+    for object in objects {
+        let tmp = object.intersect(ray);
+        if tmp.is_intersecting && tmp.distance > BIAS && tmp.distance < z_buffer {
+            z_buffer = tmp.distance;
+            intersection = tmp;
+        }
+    }
+
+    intersection
 }
 
 // Computes the perturbed normal at the intersection point using the normal map, if available.
@@ -100,24 +128,14 @@ pub fn cast_ray(
     background: &BackgroundTexture,
     textures: &[Texture],
 ) -> Vec3A {
-    let mut intersection = Intersection::no_intersection();
-    let mut z_buffer = f32::INFINITY;
-
-    for object in objects {
-        let tmp = object.intersect(ray);
-        if tmp.is_intersecting && tmp.distance < z_buffer && tmp.distance > 0.001 {
-            z_buffer = tmp.distance;
-            intersection = tmp;
-        }
-    }
+    let intersection = find_closest_hit(ray, objects);
 
     if !intersection.is_intersecting {
-        return background.sample(&ray.direction);
+        return background.sample(ray.direction);
     }
 
     // Handle shading based on the selected render mode
     match mode {
-        
         // Flat shading mode: returns the base color of the material or the diffuse texture color if available
         RenderMode::Flat => {
             if let Some(diff_id) = intersection.material.textures.diffuse_id {
@@ -155,8 +173,6 @@ pub fn cast_ray(
     }
 }
 
-
-
 // Recursively casts a ray through the scene, handling reflections and refractions.
 fn cast_ray_recursive(
     ray: &Ray,
@@ -167,14 +183,11 @@ fn cast_ray_recursive(
     depth: u32,
     hit: &Intersection,
 ) -> Vec3A {
-
-    // Limit recursion depth to avoid infinite loops and excessive computation
-    if depth > 3 {
+    if depth > MAX_RECURSION_DEPTH {
         return Vec3A::ZERO;
     }
 
-    let (u, v) = hit.uv; // UV coordinates for texture sampling
-
+    let (u, v) = hit.uv;
 
     // Diffuse color from the material or texture
     let base_diffuse = if let Some(diff_id) = hit.material.textures.diffuse_id {
@@ -196,27 +209,24 @@ fn cast_ray_recursive(
     let mut diffuse_light = Vec3A::ZERO;
     let mut specular_light = Vec3A::ZERO;
 
-    // Only calculate shadows and direct lighting if it has a diffuse or specular component
+    // Direct lighting & Shadows
     if hit.material.albedo[0] > 0.0 || hit.material.albedo[1] > 0.0 {
         for light in lights {
             let light_vec = light.position - hit.point;
             let light_dist = light_vec.length();
             let light_dir = light_vec / light_dist;
 
-            // Offset the shadow ray origin to avoid self-intersection artifacts
-            let shadow_orig = if light_dir.dot(hit.normal) < 0.0 {
-                hit.point - hit.normal * 0.001
+            let normal_offset = if light_dir.dot(hit.normal) < 0.0 {
+                -hit.normal * BIAS
             } else {
-                hit.point + hit.normal * 0.001
+                hit.normal * BIAS
             };
-            let shadow_ray = Ray {
-                origin: shadow_orig,
-                direction: light_dir,
-            };
+
+            let shadow_ray = Ray::new(hit.point + normal_offset, light_dir);
 
             let in_shadow = objects.iter().any(|obj| {
                 let s = obj.intersect(&shadow_ray);
-                s.is_intersecting && s.distance < light_dist && s.distance > 0.001
+                s.is_intersecting && s.distance < light_dist && s.distance > BIAS
             });
 
             if in_shadow {
@@ -226,83 +236,62 @@ fn cast_ray_recursive(
             let n_dot_l = shading_normal.dot(light_dir).max(0.0);
             diffuse_light += light.color * (light.intensity * n_dot_l);
 
-            let reflect_dir = reflect(-light_dir, shading_normal);
-            let view_dir = -ray.direction;
-            let spec = view_dir.dot(reflect_dir).max(0.0).powf(hit.material.specular_exponent);
-            specular_light += light.color * (light.intensity * spec * specular_factor);
+            if hit.material.albedo[1] > 0.0 && n_dot_l > 0.0 {
+                let reflect_dir = reflect(-light_dir, shading_normal);
+                let view_dir = -ray.direction;
+                let spec_angle = view_dir.dot(reflect_dir).max(0.0);
+                if spec_angle > 0.0 {
+                    let spec = spec_angle.powf(hit.material.specular_exponent);
+                    specular_light += light.color * (light.intensity * spec * specular_factor);
+                }
+            }
         }
     }
 
-    // Reflection 
-    let mut reflection_color = Vec3A::ZERO; // Reflection color initialized to zero
-
-    // Only calculate reflection if the material has a reflective component
+    // Reflection
+    let mut reflection_color = Vec3A::ZERO;
     if hit.material.albedo[2] > 0.0 {
         let reflect_dir = reflect(ray.direction, shading_normal).normalize();
-        let reflect_orig = if reflect_dir.dot(hit.normal) < 0.0 {
-            hit.point - hit.normal * 0.001
+        let normal_offset = if reflect_dir.dot(hit.normal) < 0.0 {
+            -hit.normal * BIAS
         } else {
-            hit.point + hit.normal * 0.001
-        };
-        let reflect_ray = Ray {
-            origin: reflect_orig,
-            direction: reflect_dir,
+            hit.normal * BIAS
         };
 
-        let mut sec_hit = Intersection::no_intersection();
-        let mut sec_z = f32::INFINITY;
-        for obj in objects {
-            let tmp = obj.intersect(&reflect_ray);
-            if tmp.is_intersecting && tmp.distance < sec_z && tmp.distance > 0.001 {
-                sec_z = tmp.distance;
-                sec_hit = tmp;
-            }
-        }
+        let reflect_ray = Ray::new(hit.point + normal_offset, reflect_dir);
+        let sec_hit = find_closest_hit(&reflect_ray, objects);
 
         reflection_color = if sec_hit.is_intersecting {
             cast_ray_recursive(&reflect_ray, objects, lights, background, textures, depth + 1, &sec_hit)
         } else {
-            background.sample(&reflect_ray.direction)
+            background.sample(reflect_ray.direction)
         };
     }
 
-    // Refraction
+    // Refraction & Fresnel
     let mut refraction_color = Vec3A::ZERO;
-    // Only calculate refraction if the material has a refractive component
     if hit.material.albedo[3] > 0.0 {
-        let kr = fresnel(ray.direction, shading_normal, hit.material.refractive_index);
+        let (kr, refract_dir_opt) = fresnel_and_refract(ray.direction, shading_normal, hit.material.refractive_index);
 
-        if let Some(refract_dir) = refract(ray.direction, shading_normal, hit.material.refractive_index) {
-            let refract_orig = if refract_dir.dot(hit.normal) < 0.0 {
-                hit.point - hit.normal * 0.001
+        if let Some(refract_dir) = refract_dir_opt {
+            let normal_offset = if refract_dir.dot(hit.normal) < 0.0 {
+                -hit.normal * BIAS
             } else {
-                hit.point + hit.normal * 0.001
-            };
-            let refract_ray = Ray {
-                origin: refract_orig,
-                direction: refract_dir,
+                hit.normal * BIAS
             };
 
-            let mut sec_hit = Intersection::no_intersection();
-            let mut sec_z = f32::INFINITY;
-            for obj in objects {
-                let tmp = obj.intersect(&refract_ray);
-                if tmp.is_intersecting && tmp.distance < sec_z && tmp.distance > 0.001 {
-                    sec_z = tmp.distance;
-                    sec_hit = tmp;
-                }
-            }
+            let refract_ray = Ray::new(hit.point + normal_offset, refract_dir);
+            let sec_hit = find_closest_hit(&refract_ray, objects);
 
             let transmitted_color = if sec_hit.is_intersecting {
                 cast_ray_recursive(&refract_ray, objects, lights, background, textures, depth + 1, &sec_hit)
             } else {
-                background.sample(&refract_ray.direction)
+                background.sample(refract_ray.direction)
             };
 
-            // Modulación de Fresnel: reflectancia vs transmitancia
             refraction_color = transmitted_color * (1.0 - kr) + reflection_color * kr;
         } else {
-            // Reflexión interna total (TIR): toda la energía se convierte en reflejo
+            // Total Internal Reflection (TIR)
             refraction_color = reflection_color;
         }
     }
@@ -316,53 +305,34 @@ fn cast_ray_recursive(
         + (refraction_color * hit.material.albedo[3])
 }
 
-// Calculates the reflection direction of a ray given its incoming direction 
-//and the surface normal.
 #[inline(always)]
 fn reflect(dir: Vec3A, normal: Vec3A) -> Vec3A {
-    dir - normal * 2.0 * dir.dot(normal)
+    dir - normal * (2.0 * dir.dot(normal))
 }
 
-// Calculates the refraction direction of a ray given its incoming direction,
-// the surface normal, and the material's refractive index.
 #[inline(always)]
-fn refract(dir: Vec3A, normal: Vec3A, refractive_index: f32) -> Option<Vec3A> {
+fn fresnel_and_refract(dir: Vec3A, normal: Vec3A, refractive_index: f32) -> (f32, Option<Vec3A>) {
     let mut cosi = -dir.dot(normal).clamp(-1.0, 1.0);
     let mut n = normal;
     let mut eta_i = 1.0;
     let mut eta_t = refractive_index;
 
-    // Swap the indices of refraction if the ray is exiting the material
     if cosi < 0.0 {
         cosi = -cosi;
         n = -normal;
         std::mem::swap(&mut eta_i, &mut eta_t);
     }
 
+    let r0 = ((eta_i - eta_t) / (eta_i + eta_t)).powi(2);
+    let kr = r0 + (1.0 - r0) * (1.0 - cosi).powi(5);
+
     let eta = eta_i / eta_t;
     let k = 1.0 - eta * eta * (1.0 - cosi * cosi);
 
-    // If k < 0, it means total internal reflection occurs, and no refraction is possible.
     if k < 0.0 {
-        None
+        (kr, None)
     } else {
-        Some((dir * eta + n * (eta * cosi - k.sqrt())).normalize())
+        let refract_dir = (dir * eta + n * (eta * cosi - k.sqrt())).normalize();
+        (kr, Some(refract_dir))
     }
-}
-
-// Computes the Fresnel effect, which determines how much light is reflected vs refracted
-#[inline(always)]
-fn fresnel(dir: Vec3A, normal: Vec3A, refractive_index: f32) -> f32 {
-    let mut cosi = -dir.dot(normal).clamp(-1.0, 1.0);
-    let mut eta_i = 1.0;
-    let mut eta_t = refractive_index;
-
-    // if the ray is exiting the material, swap the indices of refraction
-    if cosi < 0.0 {
-        cosi = -cosi;
-        std::mem::swap(&mut eta_i, &mut eta_t);
-    }
-
-    let r0 = ((eta_i - eta_t) / (eta_i + eta_t)).powi(2);
-    r0 + (1.0 - r0) * (1.0 - cosi).powi(5)
 }

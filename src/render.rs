@@ -1,11 +1,11 @@
+use crate::textures::background::BackgroundTexture;
+use crate::camera::Camera;
 use crate::caster::{cast_ray, Ray, RayIntersect};
 use crate::framebuffer::Framebuffer;
-use raylib::prelude::*;
-use glam::Vec3A;
-use crate::camera::Camera;
 use crate::material::Light;
-use crate::textures::background::BackgroundTexture;
 use crate::textures::texture::Texture;
+use glam::Vec3A;
+use raylib::prelude::*;
 
 /*
     This module contains the rendering logic for the 3D scene.
@@ -22,12 +22,44 @@ pub enum RenderMode {
 
 #[inline(always)]
 pub fn vec3_to_color(v: Vec3A) -> Color {
-    Color::new(
-        (v.x.clamp(0.0, 1.0) * 255.0) as u8,
-        (v.y.clamp(0.0, 1.0) * 255.0) as u8,
-        (v.z.clamp(0.0, 1.0) * 255.0) as u8,
-        255,
-    )
+    let clamped = v.clamp(Vec3A::ZERO, Vec3A::splat(1.0)) * 255.0;
+    Color::new(clamped.x as u8, clamped.y as u8, clamped.z as u8, 255)
+}
+
+#[derive(Clone, Copy)]
+struct ScreenProjection {
+    scale_x: f32,
+    offset_x: f32,
+    scale_y: f32,
+    offset_y: f32,
+}
+
+impl ScreenProjection {
+    #[inline(always)]
+    fn new(width: f32, height: f32, fov_degrees: f32) -> Self {
+        let aspect_ratio = width / height;
+        let fov_scale = (fov_degrees.to_radians() * 0.5).tan();
+
+        let inv_width = 1.0 / width;
+        let inv_height = 1.0 / height;
+
+        Self {
+            scale_x: 2.0 * inv_width * aspect_ratio * fov_scale,
+            offset_x: aspect_ratio * fov_scale,
+            scale_y: 2.0 * inv_height * fov_scale,
+            offset_y: fov_scale,
+        }
+    }
+
+    #[inline(always)]
+    fn screen_x(&self, x: f32) -> f32 {
+        (x + 0.5) * self.scale_x - self.offset_x
+    }
+
+    #[inline(always)]
+    fn screen_y(&self, y: f32) -> f32 {
+        self.offset_y - (y + 0.5) * self.scale_y
+    }
 }
 
 pub fn render(
@@ -39,10 +71,9 @@ pub fn render(
     mode: RenderMode,
     background: &BackgroundTexture,
     textures: &[Texture],
-    parallel_renderig: bool
+    parallel_rendering: bool,
 ) {
-
-    if parallel_renderig {
+    if parallel_rendering {
         parallel_render(
             framebuffer,
             objects,
@@ -51,7 +82,7 @@ pub fn render(
             fov_degrees,
             mode,
             background,
-            textures
+            textures,
         );
     } else {
         sequential_render(
@@ -62,14 +93,10 @@ pub fn render(
             fov_degrees,
             mode,
             background,
-            textures
+            textures,
         );
     }
-
-    
 }
-
-
 
 // Sequential rendering function (for testing purposes)
 fn sequential_render(
@@ -80,27 +107,25 @@ fn sequential_render(
     fov_degrees: f32,
     mode: RenderMode,
     background: &BackgroundTexture,
-    textures: &[Texture]
+    textures: &[Texture],
 ) {
-    let width = framebuffer.width as f32;
-    let height = framebuffer.height as f32;
-    let aspect_ratio = width / height;
-    let fov_scale = (fov_degrees.to_radians() * 0.5).tan();
+    let proj = ScreenProjection::new(
+        framebuffer.width as f32,
+        framebuffer.height as f32,
+        fov_degrees,
+    );
     let ray_origin = camera.eye;
 
     for y in 0..framebuffer.height {
+        let screen_y = proj.screen_y(y as f32);
+
         for x in 0..framebuffer.width {
-            let screen_x = ((2.0 * (x as f32 + 0.5)) / width - 1.0) * aspect_ratio * fov_scale;
-            let screen_y = (1.0 - (2.0 * (y as f32 + 0.5)) / height) * fov_scale;
+            let screen_x = proj.screen_x(x as f32);
 
             let local_dir = Vec3A::new(screen_x, screen_y, -1.0);
-            let ray_direction = camera.basis_change(&local_dir).normalize();
+            let ray_direction = camera.basis_change(local_dir).normalize();
 
-            let ray = Ray {
-                origin: ray_origin,
-                direction: ray_direction,
-            };
-
+            let ray = Ray::new(ray_origin, ray_direction);
             let color = cast_ray(&ray, objects, lights, mode, background, textures);
             framebuffer.set_pixel_color(x, y, vec3_to_color(color));
         }
@@ -116,26 +141,23 @@ fn parallel_render(
     fov_degrees: f32,
     mode: RenderMode,
     background: &BackgroundTexture,
-    textures: &[Texture]
+    textures: &[Texture],
 ) {
-    let width = framebuffer.width as f32;
-    let height = framebuffer.height as f32;
-    let aspect_ratio = width / height;
-    let fov_scale = (fov_degrees.to_radians() * 0.5).tan();
+    let proj = ScreenProjection::new(
+        framebuffer.width as f32,
+        framebuffer.height as f32,
+        fov_degrees,
+    );
     let ray_origin = camera.eye;
 
     framebuffer.render_parallel(|x, y| {
-        let screen_x = ((2.0 * (x as f32 + 0.5)) / width - 1.0) * aspect_ratio * fov_scale;
-        let screen_y = (1.0 - (2.0 * (y as f32 + 0.5)) / height) * fov_scale;
+        let screen_x = proj.screen_x(x as f32);
+        let screen_y = proj.screen_y(y as f32);
 
         let local_dir = Vec3A::new(screen_x, screen_y, -1.0);
-        let ray_direction = camera.basis_change(&local_dir).normalize();
+        let ray_direction = camera.basis_change(local_dir).normalize();
 
-        let ray = Ray {
-            origin: ray_origin,
-            direction: ray_direction,
-        };
-
+        let ray = Ray::new(ray_origin, ray_direction);
         let color = cast_ray(&ray, objects, lights, mode, background, textures);
         vec3_to_color(color)
     });

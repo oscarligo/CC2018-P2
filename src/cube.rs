@@ -2,23 +2,37 @@ use crate::caster::{Intersection, Ray, RayIntersect};
 use crate::material::Material;
 use glam::Vec3A;
 
-
 #[derive(Clone, Copy)]
 pub struct Cube {
     pub center: Vec3A,
-    pub size: f32,
     pub material: Material,
+    pub min_b: Vec3A,
+    pub max_b: Vec3A,
+    pub inv_half: f32,
+}
+
+impl Cube {
+    pub fn new(center: Vec3A, size: f32, material: Material) -> Self {
+        let half = size * 0.5;
+        let min_b = center - Vec3A::splat(half);
+        let max_b = center + Vec3A::splat(half);
+        let inv_half = 1.0 / half;
+
+        Self {
+            center,
+            material,
+            min_b,
+            max_b,
+            inv_half,
+        }
+    }
 }
 
 impl RayIntersect for Cube {
+    #[inline(always)]
     fn intersect(&self, ray: &Ray) -> Intersection {
-        let half = self.size * 0.5;
-        let min_b = self.center - Vec3A::splat(half);
-        let max_b = self.center + Vec3A::splat(half);
-
-        let inv_d = Vec3A::new(1.0 / ray.direction.x, 1.0 / ray.direction.y, 1.0 / ray.direction.z);
-        let t1 = (min_b - ray.origin) * inv_d;
-        let t2 = (max_b - ray.origin) * inv_d;
+        let t1 = (self.min_b - ray.origin) * ray.inv_direction;
+        let t2 = (self.max_b - ray.origin) * ray.inv_direction;
 
         let t_min = t1.min(t2);
         let t_max = t1.max(t2);
@@ -41,7 +55,7 @@ impl RayIntersect for Cube {
             Vec3A::new(0.0, 0.0, -ray.direction.z.signum())
         };
 
-        let local_p = (hit_p - self.center) / half;
+        let local_p = (hit_p - self.center) * self.inv_half;
         let u: f32;
         let v: f32;
         let tangent: Vec3A;
@@ -72,7 +86,7 @@ impl RayIntersect for Cube {
             hit_p,
             normal,
             true,
-            self.material, // Copy puro
+            self.material,
             (u.clamp(0.0, 1.0), v.clamp(0.0, 1.0)),
             tangent,
             bitangent,
