@@ -557,37 +557,24 @@ fn main() {
 
     let event_handler = EventHandler::default();
 
-    // Initial render of the scene with the specified 
-    // framebuffer, objects, lights, camera, render mode, background texture, and textures.
-    render(
-        &mut framebuffer,
-        &objects,
-        &lights,
-        &camera,
-        60.0,
-        render_mode,
-        &background_texture,
-        &textures,
-        paralel_rendering
-    );
-
     while !rl.window_should_close() {
-        let changed = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+        
+    let changed = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
 
-        if changed {
-            render(
-                &mut framebuffer,
-                &objects,
-                &lights,
-                &camera,
-                60.0,
-                render_mode,
-                &background_texture,
-                &textures,
-                paralel_rendering
-            );
-        }
-
-        framebuffer.swap_buffers(&mut rl, &thread);
+    if changed {
+        render(
+            &mut framebuffer,
+            &objects,
+            &lights,
+            &camera,
+            60.0,
+            render_mode,
+            &background_texture,
+            &textures,
+            paralel_rendering,
+        );
     }
+
+    framebuffer.swap_buffers(&mut rl, &thread);
+}
 }

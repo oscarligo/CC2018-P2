@@ -9,7 +9,6 @@ pub struct EventHandler {
 }
 
 impl EventHandler {
-
     pub fn handle_events(
         &self,
         rl: &RaylibHandle,
@@ -18,6 +17,7 @@ impl EventHandler {
     ) -> bool {
         let mut changed = false;
 
+        // Render mode switching
         if rl.is_key_pressed(KeyboardKey::KEY_ONE) && *mode != RenderMode::Flat {
             *mode = RenderMode::Flat;
             changed = true;
@@ -37,39 +37,35 @@ impl EventHandler {
 
         let lmb_down = rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT);
         let rmb_down = rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_RIGHT);
-
         let mouse_delta = rl.get_mouse_delta();
 
-        if  rmb_down {
+        if rmb_down {
             if mouse_delta.x != 0.0 || mouse_delta.y != 0.0 {
                 camera.pan(mouse_delta.x, mouse_delta.y);
-                changed = true;
             }
-        }
-        
-        else if lmb_down {
+        } else if lmb_down {
             if mouse_delta.x != 0.0 || mouse_delta.y != 0.0 {
                 let yaw = -mouse_delta.x * self.mouse_sensitivity;
                 let pitch = -mouse_delta.y * self.mouse_sensitivity;
                 camera.orbit(yaw, pitch);
-                changed = true;
             }
         }
 
-        // 5. ZOOM CON RUEDA
+        // Zooming with mouse wheel
         let wheel = rl.get_mouse_wheel_move();
         if wheel != 0.0 {
             camera.zoom(wheel * self.zoom_speed);
-            changed = true;
         }
 
+        // Reset camera position and orientation
         if rl.is_key_pressed(KeyboardKey::KEY_R) {
             camera.center = Vec3A::ZERO;
             camera.update_basis_vectors();
-            changed = true;
         }
 
-        changed || camera.is_changed()
+
+        let camera_changed = camera.is_changed();
+        changed || camera_changed
     }
 }
 
