@@ -1,8 +1,8 @@
 use glam::Vec3A;
 use crate::material::*;
 use crate::render::RenderMode;
-use crate::background::BackgroundTexture;
-use crate::texture::Texture;
+use crate::textures::background::BackgroundTexture;
+use crate::textures::texture::Texture;
 
 
 /*

@@ -1,4 +1,4 @@
-mod background;
+
 mod camera;
 mod caster;
 mod cube;
@@ -6,9 +6,9 @@ mod events;
 mod framebuffer;
 mod material;
 mod render;
-mod texture;
+mod textures;
 
-use background::BackgroundTexture;
+use textures::background::BackgroundTexture;
 use camera::Camera;
 use cube::Cube;
 use events::EventHandler;
@@ -17,7 +17,9 @@ use glam::Vec3A;
 use material::{Light, Material, MaterialTextureIds};
 use raylib::prelude::*;
 use render::{render, RenderMode};
-use texture::Texture;
+use textures::texture::Texture;
+
+
 
 fn main() {
     let width = 1024;
@@ -39,6 +41,7 @@ fn main() {
         Vec3A::new(0.0, 0.0, -5.0),
         Vec3A::new(0.0, 1.0, 0.0),
     );
+
 
     // Load textures for various materials used in the scene. 
     // sEach texture is loaded from a file and can be either sRGB or linear.
@@ -81,7 +84,7 @@ fn main() {
     let background_texture = BackgroundTexture::load("assets/sky.png");
 
     // Initial render mode is set to Full, which means all rendering features are enabled.
-    let mut render_mode = RenderMode::BasicLight;
+    let mut render_mode = RenderMode::Flat;
 
     // The following materials are defined with their respective properties and associated textures.
     // Each material has a diffuse color, albedo values, specular exponent, refractive index, 
@@ -274,6 +277,281 @@ fn main() {
             intensity: 1.0,
             color: Vec3A::new(0.8, 0.85, 1.0),
         },
+    ];
+
+
+        let objects2: Vec<Cube> = vec![
+        Cube { center: Vec3A::new(-7.5, 0.0, -17.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-6.5, 0.0, -17.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-5.5, 0.0, -17.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-4.5, 0.0, -17.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-3.5, 0.0, -17.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-2.5, 0.0, -17.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-1.5, 0.0, -17.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-0.5, 0.0, -17.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(0.5, 0.0, -17.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(1.5, 0.0, -17.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(2.5, 0.0, -17.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(3.5, 0.0, -17.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(4.5, 0.0, -17.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(5.5, 0.0, -17.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(6.5, 0.0, -17.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(7.5, 0.0, -17.5), size: 1.0, material: brick },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -16.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-6.5, 0.0, -16.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-5.5, 0.0, -16.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-4.5, 0.0, -16.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-3.5, 0.0, -16.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-2.5, 0.0, -16.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-1.5, 0.0, -16.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-0.5, 0.0, -16.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(0.5, 0.0, -16.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(1.5, 0.0, -16.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(2.5, 0.0, -16.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(3.5, 0.0, -16.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(4.5, 0.0, -16.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(5.5, 0.0, -16.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(6.5, 0.0, -16.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(7.5, 0.0, -16.5), size: 1.0, material: white_glass },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -15.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-6.5, 0.0, -15.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-5.5, 0.0, -15.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-4.5, 0.0, -15.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-3.5, 0.0, -15.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-2.5, 0.0, -15.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-1.5, 0.0, -15.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-0.5, 0.0, -15.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(0.5, 0.0, -15.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(1.5, 0.0, -15.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(2.5, 0.0, -15.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(3.5, 0.0, -15.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(4.5, 0.0, -15.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(5.5, 0.0, -15.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(6.5, 0.0, -15.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(7.5, 0.0, -15.5), size: 1.0, material: prismarine },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -14.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-6.5, 0.0, -14.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-5.5, 0.0, -14.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-4.5, 0.0, -14.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-3.5, 0.0, -14.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-2.5, 0.0, -14.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-1.5, 0.0, -14.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-0.5, 0.0, -14.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(0.5, 0.0, -14.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(1.5, 0.0, -14.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(2.5, 0.0, -14.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(3.5, 0.0, -14.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(4.5, 0.0, -14.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(5.5, 0.0, -14.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(6.5, 0.0, -14.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(7.5, 0.0, -14.5), size: 1.0, material: stone },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -13.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-6.5, 0.0, -13.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-5.5, 0.0, -13.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-4.5, 0.0, -13.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-3.5, 0.0, -13.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-2.5, 0.0, -13.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-1.5, 0.0, -13.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-0.5, 0.0, -13.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(0.5, 0.0, -13.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(1.5, 0.0, -13.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(2.5, 0.0, -13.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(3.5, 0.0, -13.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(4.5, 0.0, -13.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(5.5, 0.0, -13.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(6.5, 0.0, -13.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(7.5, 0.0, -13.5), size: 1.0, material: glowstone },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -12.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-6.5, 0.0, -12.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-5.5, 0.0, -12.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-4.5, 0.0, -12.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-3.5, 0.0, -12.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-2.5, 0.0, -12.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-1.5, 0.0, -12.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-0.5, 0.0, -12.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(0.5, 0.0, -12.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(1.5, 0.0, -12.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(2.5, 0.0, -12.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(3.5, 0.0, -12.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(4.5, 0.0, -12.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(5.5, 0.0, -12.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(6.5, 0.0, -12.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(7.5, 0.0, -12.5), size: 1.0, material: brick },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -11.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-6.5, 0.0, -11.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-5.5, 0.0, -11.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-4.5, 0.0, -11.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-3.5, 0.0, -11.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-2.5, 0.0, -11.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-1.5, 0.0, -11.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-0.5, 0.0, -11.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(0.5, 0.0, -11.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(1.5, 0.0, -11.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(2.5, 0.0, -11.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(3.5, 0.0, -11.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(4.5, 0.0, -11.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(5.5, 0.0, -11.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(6.5, 0.0, -11.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(7.5, 0.0, -11.5), size: 1.0, material: white_glass },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -10.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-6.5, 0.0, -10.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-5.5, 0.0, -10.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-4.5, 0.0, -10.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-3.5, 0.0, -10.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-2.5, 0.0, -10.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-1.5, 0.0, -10.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-0.5, 0.0, -10.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(0.5, 0.0, -10.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(1.5, 0.0, -10.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(2.5, 0.0, -10.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(3.5, 0.0, -10.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(4.5, 0.0, -10.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(5.5, 0.0, -10.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(6.5, 0.0, -10.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(7.5, 0.0, -10.5), size: 1.0, material: prismarine },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -9.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-6.5, 0.0, -9.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-5.5, 0.0, -9.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-4.5, 0.0, -9.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-3.5, 0.0, -9.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-2.5, 0.0, -9.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-1.5, 0.0, -9.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-0.5, 0.0, -9.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(0.5, 0.0, -9.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(1.5, 0.0, -9.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(2.5, 0.0, -9.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(3.5, 0.0, -9.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(4.5, 0.0, -9.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(5.5, 0.0, -9.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(6.5, 0.0, -9.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(7.5, 0.0, -9.5), size: 1.0, material: stone },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -8.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-6.5, 0.0, -8.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-5.5, 0.0, -8.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-4.5, 0.0, -8.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-3.5, 0.0, -8.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-2.5, 0.0, -8.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-1.5, 0.0, -8.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-0.5, 0.0, -8.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(0.5, 0.0, -8.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(1.5, 0.0, -8.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(2.5, 0.0, -8.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(3.5, 0.0, -8.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(4.5, 0.0, -8.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(5.5, 0.0, -8.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(6.5, 0.0, -8.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(7.5, 0.0, -8.5), size: 1.0, material: glowstone },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -7.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-6.5, 0.0, -7.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-5.5, 0.0, -7.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-4.5, 0.0, -7.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-3.5, 0.0, -7.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-2.5, 0.0, -7.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-1.5, 0.0, -7.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-0.5, 0.0, -7.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(0.5, 0.0, -7.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(1.5, 0.0, -7.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(2.5, 0.0, -7.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(3.5, 0.0, -7.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(4.5, 0.0, -7.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(5.5, 0.0, -7.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(6.5, 0.0, -7.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(7.5, 0.0, -7.5), size: 1.0, material: brick },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -6.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-6.5, 0.0, -6.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-5.5, 0.0, -6.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-4.5, 0.0, -6.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-3.5, 0.0, -6.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-2.5, 0.0, -6.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-1.5, 0.0, -6.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-0.5, 0.0, -6.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(0.5, 0.0, -6.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(1.5, 0.0, -6.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(2.5, 0.0, -6.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(3.5, 0.0, -6.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(4.5, 0.0, -6.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(5.5, 0.0, -6.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(6.5, 0.0, -6.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(7.5, 0.0, -6.5), size: 1.0, material: white_glass },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -5.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-6.5, 0.0, -5.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-5.5, 0.0, -5.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-4.5, 0.0, -5.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-3.5, 0.0, -5.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-2.5, 0.0, -5.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-1.5, 0.0, -5.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-0.5, 0.0, -5.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(0.5, 0.0, -5.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(1.5, 0.0, -5.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(2.5, 0.0, -5.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(3.5, 0.0, -5.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(4.5, 0.0, -5.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(5.5, 0.0, -5.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(6.5, 0.0, -5.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(7.5, 0.0, -5.5), size: 1.0, material: prismarine },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -4.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-6.5, 0.0, -4.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-5.5, 0.0, -4.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-4.5, 0.0, -4.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-3.5, 0.0, -4.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-2.5, 0.0, -4.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-1.5, 0.0, -4.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-0.5, 0.0, -4.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(0.5, 0.0, -4.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(1.5, 0.0, -4.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(2.5, 0.0, -4.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(3.5, 0.0, -4.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(4.5, 0.0, -4.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(5.5, 0.0, -4.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(6.5, 0.0, -4.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(7.5, 0.0, -4.5), size: 1.0, material: stone },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -3.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-6.5, 0.0, -3.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-5.5, 0.0, -3.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-4.5, 0.0, -3.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(-3.5, 0.0, -3.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(-2.5, 0.0, -3.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(-1.5, 0.0, -3.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-0.5, 0.0, -3.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(0.5, 0.0, -3.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(1.5, 0.0, -3.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(2.5, 0.0, -3.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(3.5, 0.0, -3.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(4.5, 0.0, -3.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(5.5, 0.0, -3.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(6.5, 0.0, -3.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(7.5, 0.0, -3.5), size: 1.0, material: glowstone },
+
+        Cube { center: Vec3A::new(-7.5, 0.0, -2.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(-6.5, 0.0, -2.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(-5.5, 0.0, -2.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(-4.5, 0.0, -2.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(-3.5, 0.0, -2.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(-2.5, 0.0, -2.5), size: 1.0, material: brick },
+        Cube { center: Vec3A::new(-1.5, 0.0, -2.5), size: 1.0, material: copper },
+        Cube { center: Vec3A::new(-0.5, 0.0, -2.5), size: 1.0, material: prismarine },
+        Cube { center: Vec3A::new(0.5, 0.0, -2.5), size: 1.0, material: gold_block },
+        Cube { center: Vec3A::new(1.5, 0.0, -2.5), size: 1.0, material: glowstone },
+        Cube { center: Vec3A::new(2.5, 0.0, -2.5), size: 1.0, material: ice },
+        Cube { center: Vec3A::new(3.5, 0.0, -2.5), size: 1.0, material: white_glass },
+        Cube { center: Vec3A::new(4.5, 0.0, -2.5), size: 1.0, material: wood },
+        Cube { center: Vec3A::new(5.5, 0.0, -2.5), size: 1.0, material: stone },
+        Cube { center: Vec3A::new(6.5, 0.0, -2.5), size: 1.0, material: wool },
+        Cube { center: Vec3A::new(7.5, 0.0, -2.5), size: 1.0, material: brick },
     ];
     
 

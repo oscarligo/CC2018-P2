@@ -4,8 +4,8 @@ use raylib::prelude::*;
 use glam::Vec3A;
 use crate::camera::Camera;
 use crate::material::Light;
-use crate::background::BackgroundTexture;
-use crate::texture::Texture;
+use crate::textures::background::BackgroundTexture;
+use crate::textures::texture::Texture;
 
 /*
     This module contains the rendering logic for the 3D scene.
