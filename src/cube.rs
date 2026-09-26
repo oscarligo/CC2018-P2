@@ -44,42 +44,42 @@ impl RayIntersect for Cube {
             return Intersection::no_intersection();
         }
 
-        let t_hit = if t_near > 0.001 { t_near } else { t_far };
+        let is_outside = t_near > 0.001;
+        let t_hit = if is_outside { t_near } else { t_far };
+        let t_target = if is_outside { t_min } else { t_max };
+
         let hit_p = ray.origin + ray.direction * t_hit;
-
-        let normal = if (t_near - t_min.x).abs() < 1e-4 {
-            Vec3A::new(-ray.direction.x.signum(), 0.0, 0.0)
-        } else if (t_near - t_min.y).abs() < 1e-4 {
-            Vec3A::new(0.0, -ray.direction.y.signum(), 0.0)
-        } else {
-            Vec3A::new(0.0, 0.0, -ray.direction.z.signum())
-        };
-
         let local_p = (hit_p - self.center) * self.inv_half;
-        let u: f32;
-        let v: f32;
-        let tangent: Vec3A;
-        let bitangent: Vec3A;
 
-        if normal.x.abs() > 0.9 {
-            let sign = normal.x.signum();
-            u = (-local_p.z * sign + 1.0) * 0.5;
-            v = (1.0 - local_p.y) * 0.5;
-            tangent = Vec3A::new(0.0, 0.0, -sign);
-            bitangent = Vec3A::new(0.0, -1.0, 0.0);
-        } else if normal.y.abs() > 0.9 {
-            let sign = normal.y.signum();
-            u = (local_p.x + 1.0) * 0.5;
-            v = (local_p.z * sign + 1.0) * 0.5;
-            tangent = Vec3A::new(1.0, 0.0, 0.0);
-            bitangent = Vec3A::new(0.0, 0.0, sign);
+        let (normal, u, v, tangent, bitangent) = if t_hit == t_target.x {
+            let sign = if is_outside { -ray.direction.x.signum() } else { ray.direction.x.signum() };
+            (
+                Vec3A::new(sign, 0.0, 0.0),
+                (-local_p.z * sign + 1.0) * 0.5,
+                (1.0 - local_p.y) * 0.5,
+                Vec3A::new(0.0, 0.0, -sign),
+                Vec3A::new(0.0, -1.0, 0.0),
+            )
+        } else if t_hit == t_target.y {
+            let sign = if is_outside { -ray.direction.y.signum() } else { ray.direction.y.signum() };
+            (
+                Vec3A::new(0.0, sign, 0.0),
+                (local_p.x + 1.0) * 0.5,
+                (local_p.z * sign + 1.0) * 0.5,
+                Vec3A::new(1.0, 0.0, 0.0),
+                Vec3A::new(0.0, 0.0, sign),
+            )
         } else {
-            let sign = normal.z.signum();
-            u = (local_p.x * sign + 1.0) * 0.5;
-            v = (1.0 - local_p.y) * 0.5;
-            tangent = Vec3A::new(sign, 0.0, 0.0);
-            bitangent = Vec3A::new(0.0, -1.0, 0.0);
-        }
+            // Eje Z
+            let sign = if is_outside { -ray.direction.z.signum() } else { ray.direction.z.signum() };
+            (
+                Vec3A::new(0.0, 0.0, sign),
+                (local_p.x * sign + 1.0) * 0.5,
+                (1.0 - local_p.y) * 0.5,
+                Vec3A::new(sign, 0.0, 0.0),
+                Vec3A::new(0.0, -1.0, 0.0),
+            )
+        };
 
         Intersection::new(
             t_hit,

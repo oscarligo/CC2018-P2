@@ -22,7 +22,9 @@ fn main() {
     let width = 1024;
     let height = 720;
     let parallel_rendering = true;
-    const PREVIEW_PIXEL_SIZE: u32 = 4;
+    const PREVIEW_PIXEL_SIZE: u32 = 1;
+    const FULL_RENDER_PIXEL_SIZE: u32 = 1;
+    const GRID_SIZE: usize = 16;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -68,6 +70,12 @@ fn main() {
         Texture::load("assets/blocks/ice/diffuse.png", true),
         Texture::load("assets/blocks/ice/normal.png", false),
         Texture::load("assets/blocks/ice/specular.png", false),
+        Texture::load("assets/blocks/grass/diffuse.png", true),
+        Texture::load("assets/blocks/grass/normal.png", false),
+        Texture::load("assets/blocks/grass/specular.png", false),
+        Texture::load("assets/blocks/moss/diffuse.png", true),
+        Texture::load("assets/blocks/moss/normal.png", false),
+        Texture::load("assets/blocks/moss/specular.png", false),
     ];
 
     let background_texture = BackgroundTexture::load("assets/sky.png");
@@ -193,6 +201,30 @@ fn main() {
         },
     };
 
+    let grass = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.95, 0.05, 0.0, 0.0],
+        specular_exponent: 6.0,
+        refractive_index: 1.0,
+        textures: MaterialTextureIds {
+            diffuse_id: Some(30),
+            normal_id: Some(31),
+            specular_id: Some(32),
+        },
+    };
+
+    let moss = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.95, 0.05, 0.0, 0.0],
+        specular_exponent: 6.0,
+        refractive_index: 1.0,
+        textures: MaterialTextureIds {
+            diffuse_id: Some(33),
+            normal_id: Some(34),
+            specular_id: Some(35),
+        },
+    };
+
     let materials = [
         ice,
         white_glass,
@@ -203,16 +235,15 @@ fn main() {
         copper,
         prismarine,
         gold_block,
-        glowstone,
     ];
 
     // Generates a grid of cubes with different materials
-    let objects: Vec<Cube> = (0..16)
+    let objects: Vec<Cube> = (0..GRID_SIZE)
         .flat_map(|row| {
-            (0..16).map(move |col| {
+            (0..GRID_SIZE).map(move |col| {
                 let x = -7.5 + (col as f32);
                 let z = -17.5 + (row as f32);
-                let mat = materials[(row * 16 + col) % materials.len()];
+                let mat = materials[(row * GRID_SIZE + col) % materials.len()];
                 Cube::new(Vec3A::new(x, 0.0, z), 1.0, mat)
             })
         })
@@ -224,12 +255,58 @@ fn main() {
             intensity: 3.0,
             color: Vec3A::new(1.0, 1.0, 1.0),
         },
-        // Light {
-        //     position: Vec3A::new(10.0, 5.0, 0.0),
-        //     intensity: 1.0,
-        //     color: Vec3A::new(0.8, 0.85, 1.0),
-        // },
+        Light {
+            position: Vec3A::new(10.0, 5.0, 0.0),
+            intensity: 1.0,
+            color: Vec3A::new(0.8, 0.85, 1.0),
+        },
     ];
+
+
+    let objects2: Vec<Cube> = {
+    // Mapa 16x16: 0 = Piedra, 1 = Hielo (agua/lago central con entradas)
+    let map: [[u8; 16]; 16] = [
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+        [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ];
+
+    let base_y = 0.0;
+    let water_y = -0.25; // Altura del agua (hielo) en el centro del mapa
+    let base_z = -10.0;
+    let mut grid = Vec::with_capacity(256);
+
+    for (row, line) in map.iter().enumerate() {
+        let z = base_z + ((row as f32) - 7.5);
+        for (col, &cell) in line.iter().enumerate() {
+            let x = (col as f32) - 7.5;
+            let material = if cell == 1 { stone } else { stone };
+            let y = if cell == 1 { water_y } else { base_y };
+
+            grid.push(Cube::new(
+                Vec3A::new(x, y, z),
+                1.0,
+                material,
+            ));
+        }
+    }
+
+    grid
+};
+
 
     let event_handler = EventHandler::default();
     let mut needs_full_render = false;
@@ -242,7 +319,7 @@ fn main() {
         if rendered {
             render(
                 &mut framebuffer,
-                &objects,
+                &objects2,
                 &lights,
                 &camera,
                 60.0,
@@ -250,7 +327,7 @@ fn main() {
                 &background_texture,
                 &textures,
                 parallel_rendering,
-                if camera_moving { PREVIEW_PIXEL_SIZE } else { 1 },
+                if camera_moving { PREVIEW_PIXEL_SIZE } else { FULL_RENDER_PIXEL_SIZE },
             );
             needs_full_render = camera_moving;
         }

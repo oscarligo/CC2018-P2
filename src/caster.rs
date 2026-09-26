@@ -12,7 +12,7 @@ use crate::textures::texture::Texture;
 */
 
 const BIAS: f32 = 0.001;
-const MAX_RECURSION_DEPTH: u32 = 3;
+const MAX_RECURSION_DEPTH: u32 = 2;
 
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
