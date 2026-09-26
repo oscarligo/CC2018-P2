@@ -14,6 +14,7 @@ impl HousePrefab {
         const EXT_FLOOR: u8 = 7; // Suelo exterior (porche)
         const INT_FLOOR: u8 = 8; // Suelo interior de la casa
         const INT_DETAIL: u8 = 9; // Detalles interiores (paredes, escaleras, etc.)
+        const PILLAR: u8 = 10; // Pilares de soporte del porche
 
         let mut voxels = BTreeMap::new();
         let mut put = |x: usize, y: usize, z: usize, id: u8| {
@@ -74,9 +75,9 @@ impl HousePrefab {
         }
         for &x in &[2, 7] {
             for y in 1..=3 {
-                put(x, y, 0, WOOD);
+                put(x, y, 0, PILLAR);
             }
-            put(x, 1, 1, WOOD);
+            put(x, 1, 1, PILLAR);
         }
 
         // Escalera
