@@ -296,12 +296,9 @@ fn main() {
             color: Vec3A::new(1.0, 1.0, 1.0),
         },
     ];
-
-    let mut transition_t = 0.0f32;
-    let anim_speed = 4.0;
     
     let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
-    let cubes = generator.generate(stone);
+    let cubes = generator.generate(stone,ice);
 
     let mut scene = Bvh::new(cubes);
     let event_handler = EventHandler::default();
@@ -313,7 +310,7 @@ fn main() {
 
         if dx != 0 || dz != 0 {
             generator.shift(dx, dz);
-            let new_cubes = generator.generate( stone);
+            let new_cubes = generator.generate( stone,ice);
             scene = Bvh::new(new_cubes);
         }
 

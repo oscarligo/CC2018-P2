@@ -28,7 +28,7 @@ impl WorldGenerator {
         self.offset_z += dz;
     }
 
-    pub fn generate(&self, material: Material) -> Vec<Cube> {
+    pub fn generate(&self, terrain_mat: Material, water_mat: Material) -> Vec<Cube> {
         let total = self.size_x * self.size_y * self.size_z;
         let mut grid = vec![0u8; total];
 
@@ -44,7 +44,6 @@ impl WorldGenerator {
 
                 let plateau_wave = ((world_x * 0.08).sin() + (world_z * 0.08).cos()) * 0.5;
                 let plateau_extra = if plateau_wave > 0.35 { 1 } else { 0 };
-
                 let s_rare = (world_x * 0.065 + (world_z * 0.045).cos() * 2.0).sin() * 0.5 + 0.5;
                 let c_rare = (world_z * 0.065 + (world_x * 0.045).sin() * 2.0).cos() * 0.5 + 0.5;
                 let spire_factor = (s_rare * c_rare).powi(16);
@@ -56,7 +55,6 @@ impl WorldGenerator {
                 } else if spire_factor > 0.32 {
                     3
                 } else {
-                    // Spike-like structures based on a combination of sine and cosine waves
                     let region_mask = ((world_x * 0.05).sin() * (world_z * 0.05).cos()).abs();
                     if region_mask > 0.40 {
                         let w1 = (world_x * 0.28 + (world_z * 0.15).sin() * 1.2).sin() * 0.5 + 0.5;
@@ -83,11 +81,24 @@ impl WorldGenerator {
                     }
                 };
 
-                let extra_height = plateau_extra + peak_extra;
-                let max_y = extra_height.min(self.size_y.saturating_sub(1));
+                let pond_cell_size = 64.0;
+                let local_px = (world_x.rem_euclid(pond_cell_size)) - (pond_cell_size * 0.5);
+                let local_pz = (world_z.rem_euclid(pond_cell_size)) - (pond_cell_size * 0.5);
+                let pond_dist_sq = local_px * local_px + local_pz * local_pz;
 
-                for y in 0..=max_y {
-                    grid[idx(x, y, z)] = 1;
+                let angle = local_pz.atan2(local_px);
+                let pond_radius = 6.0 + 1.5 * (angle * 3.0).sin();
+                let is_in_pond = pond_dist_sq < (pond_radius * pond_radius) && peak_extra == 0;
+
+                if is_in_pond {
+                    grid[idx(x, 0, z)] = 2;
+                } else {
+                    let extra_height = plateau_extra + peak_extra;
+                    let max_y = extra_height.min(self.size_y.saturating_sub(1));
+
+                    for y in 0..=max_y {
+                        grid[idx(x, y, z)] = 1;
+                    }
                 }
             }
         }
@@ -100,7 +111,8 @@ impl WorldGenerator {
         for y in 0..sy {
             for z in 0..sz {
                 for x in 0..sx {
-                    if grid[idx(x, y, z)] == 0 {
+                    let cell_type = grid[idx(x, y, z)];
+                    if cell_type == 0 {
                         continue;
                     }
 
@@ -108,28 +120,43 @@ impl WorldGenerator {
                     let dist_z = z.min(sz - 1 - z);
                     let edge_dist = dist_x.min(dist_z);
 
-                    let y_offset = match edge_dist {
+                    let edge_y_offset = match edge_dist {
                         0 => -1.2 * self.block_size,
                         1 => -0.8 * self.block_size,
                         2 => -0.4 * self.block_size,
                         _ => 0.0,
                     };
 
+                    let water_sink_offset = if cell_type == 2 {
+                        -0.35 * self.block_size
+                    } else {
+                        0.0
+                    };
+
+                    // Culling: evaluamos vecinos vacíos (o contacto agua/tierra)
                     let exposed = x == 0 || grid[idx(x - 1, y, z)] == 0
                         || x + 1 == sx || grid[idx(x + 1, y, z)] == 0
                         || y == 0 || grid[idx(x, y - 1, z)] == 0
                         || y + 1 == sy || grid[idx(x, y + 1, z)] == 0
                         || z == 0 || grid[idx(x, y, z - 1)] == 0
-                        || z + 1 == sz || grid[idx(x, y, z + 1)] == 0;
+                        || z + 1 == sz || grid[idx(x, y, z + 1)] == 0
+                        // Si la tierra colinda con agua, la cara de la cuenca debe verse
+                        || (cell_type == 1 && (
+                            (x > 0 && grid[idx(x - 1, y, z)] == 2) ||
+                            (x + 1 < sx && grid[idx(x + 1, y, z)] == 2) ||
+                            (z > 0 && grid[idx(x, y, z - 1)] == 2) ||
+                            (z + 1 < sz && grid[idx(x, y, z + 1)] == 2)
+                        ));
 
                     if exposed {
                         let center = Vec3A::new(
                             (x as f32 - sx as f32 * 0.5) * self.block_size,
-                            y as f32 * self.block_size + y_offset,
+                            y as f32 * self.block_size + edge_y_offset + water_sink_offset,
                             (z as f32 - sz as f32 * 0.5) * self.block_size,
                         );
 
-                        cubes.push(Cube::new(center, self.block_size, material));
+                        let mat = if cell_type == 2 { water_mat } else { terrain_mat };
+                        cubes.push(Cube::new(center, self.block_size, mat));
                     }
                 }
             }
