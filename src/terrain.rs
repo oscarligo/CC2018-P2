@@ -42,21 +42,45 @@ impl WorldGenerator {
             for z in 0..self.size_z {
                 let world_z = (z as i32 + self.offset_z) as f32;
 
-                let plateau_wave = ((world_x * 0.12).sin() + (world_z * 0.12).cos()) * 0.5;
-                let plateau_extra = if plateau_wave > 0.25 { 1 } else { 0 };
+                let plateau_wave = ((world_x * 0.08).sin() + (world_z * 0.08).cos()) * 0.5;
+                let plateau_extra = if plateau_wave > 0.35 { 1 } else { 0 };
 
-                let px = ((world_x * 0.45).sin() * 0.5 + 0.5).max(0.0);
-                let pz = ((world_z * 0.45).cos() * 0.5 + 0.5).max(0.0);
-                let peak_factor = (px * pz).powi(6);
+                let s_rare = (world_x * 0.065 + (world_z * 0.045).cos() * 2.0).sin() * 0.5 + 0.5;
+                let c_rare = (world_z * 0.065 + (world_x * 0.045).sin() * 2.0).cos() * 0.5 + 0.5;
+                let spire_factor = (s_rare * c_rare).powi(16);
 
-                let peak_extra = if peak_factor > 0.70 {
-                    5
-                } else if peak_factor > 0.45 {
+                let peak_extra = if spire_factor > 0.72 {
+                    9
+                } else if spire_factor > 0.50 {
+                    6
+                } else if spire_factor > 0.32 {
                     3
-                } else if peak_factor > 0.20 {
-                    1
                 } else {
-                    0
+                    // Spike-like structures based on a combination of sine and cosine waves
+                    let region_mask = ((world_x * 0.05).sin() * (world_z * 0.05).cos()).abs();
+                    if region_mask > 0.40 {
+                        let w1 = (world_x * 0.28 + (world_z * 0.15).sin() * 1.2).sin() * 0.5 + 0.5;
+                        let w2 = (world_z * 0.31 + (world_x * 0.13).cos() * 1.2).cos() * 0.5 + 0.5;
+                        let p1 = (w1 * w2).powi(10);
+
+                        let w3 = (world_x * 0.42 - world_z * 0.25).sin() * 0.5 + 0.5;
+                        let w4 = (world_z * 0.39 + world_x * 0.21).cos() * 0.5 + 0.5;
+                        let p2 = (w3 * w4).powi(12);
+
+                        let combined = p1.max(p2);
+
+                        if combined > 0.70 {
+                            3
+                        } else if combined > 0.48 {
+                            2
+                        } else if combined > 0.30 {
+                            1
+                        } else {
+                            0
+                        }
+                    } else {
+                        0
+                    }
                 };
 
                 let extra_height = plateau_extra + peak_extra;
@@ -85,10 +109,10 @@ impl WorldGenerator {
                     let edge_dist = dist_x.min(dist_z);
 
                     let y_offset = match edge_dist {
-                        0 => -1.2 * self.block_size, 
-                        1 => -0.8 * self.block_size, 
-                        2 => -0.4 * self.block_size, 
-                        _ => 0.0,                    
+                        0 => -1.2 * self.block_size,
+                        1 => -0.8 * self.block_size,
+                        2 => -0.4 * self.block_size,
+                        _ => 0.0,
                     };
 
                     let exposed = x == 0 || grid[idx(x - 1, y, z)] == 0
