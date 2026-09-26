@@ -6,17 +6,18 @@ mod events;
 mod framebuffer;
 mod material;
 mod render;
+mod terrain;
 mod textures;
 
 use bvh::Bvh;
 use camera::Camera;
-use cube::Cube;
 use events::EventHandler;
 use framebuffer::Framebuffer;
 use glam::Vec3A;
 use material::{Light, Material, MaterialTextureIds};
 use raylib::prelude::*;
 use render::{render, RenderMode};
+use terrain::WorldGenerator;
 use textures::background::BackgroundTexture;
 use textures::texture::Texture;
 
@@ -24,9 +25,11 @@ fn main() {
     let width = 1024;
     let height = 720;
     let parallel_rendering = true;
-    const PREVIEW_PIXEL_SIZE: u32 = 1;
+
+    // 
+    const PREVIEW_PIXEL_SIZE: u32 = 2;
     const FULL_RENDER_PIXEL_SIZE: u32 = 1;
-    const GRID_SIZE: usize = 16;
+    const TERRAIN_GRID_SIZE: usize = 32;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -36,8 +39,8 @@ fn main() {
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
 
     let mut camera = Camera::new(
-        Vec3A::new(0.0, 0.0, 5.0),
-        Vec3A::new(0.0, 0.0, -5.0),
+        Vec3A::new(0.0, 6.0, 12.0),
+        Vec3A::new(0.0, 1.0, 0.0),
         Vec3A::new(0.0, 1.0, 0.0),
     );
 
@@ -115,6 +118,19 @@ fn main() {
             specular_id: Some(5),
         },
     };
+
+    let grass = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.95, 0.05, 0.0, 0.0],
+        specular_exponent: 6.0,
+        refractive_index: 1.0,
+        textures: MaterialTextureIds {
+            diffuse_id: Some(30),
+            normal_id: Some(31),
+            specular_id: Some(32),
+        },
+    };
+
 
     let wool = Material {
         diffuse_color: Vec3A::splat(1.0),
@@ -272,32 +288,6 @@ fn main() {
         },
     };
 
-    let materials = [
-        ice,
-        white_glass,
-        wood,
-        stone,
-        wool,
-        brick,
-        copper,
-        prismarine,
-        gold_block,
-        glowstone,
-    ];
-
-
-
-    // Generates a grid of cubes with different materials
-    let objects: Vec<Cube> = (0..GRID_SIZE)
-        .flat_map(|row| {
-            (0..GRID_SIZE).map(move |col| {
-                let x = -7.5 + (col as f32);
-                let z = -17.5 + (row as f32);
-                let mat = materials[(row * GRID_SIZE + col) % materials.len()];
-                Cube::new(Vec3A::new(x, 0.0, z), 1.0, mat)
-            })
-        })
-        .collect();
 
     let lights = vec![
         Light {
@@ -307,62 +297,35 @@ fn main() {
         },
     ];
 
+    let mut transition_t = 0.0f32;
+    let anim_speed = 4.0;
+    
+    let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
+    let cubes = generator.generate(stone);
 
-    let objects2: Vec<Cube> = {
-    // Mapa 16x16: 0 = Piedra, 1 = Hielo (agua/lago central con entradas)
-    let map: [[u8; 16]; 16] = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-        [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
-        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    ];
-
-    let base_y = 0.0;
-    let water_y = -0.25; // Altura del agua (hielo) en el centro del mapa
-    let base_z = -10.0;
-    let mut grid = Vec::with_capacity(256);
-
-    for (row, line) in map.iter().enumerate() {
-        let z = base_z + ((row as f32) - 7.5);
-        for (col, &cell) in line.iter().enumerate() {
-            let x = (col as f32) - 7.5;
-            let material = if cell == 1 { ice } else { stone };
-            let y = if cell == 1 { water_y } else { base_y };
-
-            grid.push(Cube::new(
-                Vec3A::new(x, y, z),
-                1.0,
-                material,
-            ));
-        }
-    }
-
-    grid
-};
-
-
-    let scene = Bvh::new(objects);
+    let mut scene = Bvh::new(cubes);
     let event_handler = EventHandler::default();
-    let mut needs_full_render = false;
+    let mut needs_full_render = true; 
 
     while !rl.window_should_close() {
-        let (changed, camera_moving) =
+        let (changed, is_moving, (dx, dz)) =
             event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+
+        if dx != 0 || dz != 0 {
+            generator.shift(dx, dz);
+            let new_cubes = generator.generate( stone);
+            scene = Bvh::new(new_cubes);
+        }
+
         let rendered = changed || needs_full_render;
 
         if rendered {
+            let current_pixel_size = if is_moving {
+                PREVIEW_PIXEL_SIZE
+            } else {
+                FULL_RENDER_PIXEL_SIZE
+            };
+
             render(
                 &mut framebuffer,
                 &scene,
@@ -373,9 +336,10 @@ fn main() {
                 &background_texture,
                 &textures,
                 parallel_rendering,
-                if camera_moving { PREVIEW_PIXEL_SIZE } else { FULL_RENDER_PIXEL_SIZE },
+                current_pixel_size,
             );
-            needs_full_render = camera_moving;
+
+            needs_full_render = is_moving;
         }
 
         framebuffer.swap_buffers(&mut rl, &thread, rendered);
