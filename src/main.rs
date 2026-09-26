@@ -22,6 +22,7 @@ fn main() {
     let width = 1024;
     let height = 720;
     let parallel_rendering = true;
+    const PREVIEW_PIXEL_SIZE: u32 = 4;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -231,11 +232,14 @@ fn main() {
     ];
 
     let event_handler = EventHandler::default();
+    let mut needs_full_render = false;
 
     while !rl.window_should_close() {
-        let changed = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+        let (changed, camera_moving) =
+            event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+        let rendered = changed || needs_full_render;
 
-        if changed {
+        if rendered {
             render(
                 &mut framebuffer,
                 &objects,
@@ -246,9 +250,11 @@ fn main() {
                 &background_texture,
                 &textures,
                 parallel_rendering,
+                if camera_moving { PREVIEW_PIXEL_SIZE } else { 1 },
             );
+            needs_full_render = camera_moving;
         }
 
-        framebuffer.swap_buffers(&mut rl, &thread);
+        framebuffer.swap_buffers(&mut rl, &thread, rendered);
     }
 }

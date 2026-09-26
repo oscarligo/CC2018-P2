@@ -1,7 +1,7 @@
-use raylib::prelude::*;
-use glam::Vec3A;
 use crate::camera::Camera;
 use crate::render::RenderMode;
+use glam::Vec3A;
+use raylib::prelude::*;
 
 pub struct EventHandler {
     pub mouse_sensitivity: f32,
@@ -14,8 +14,9 @@ impl EventHandler {
         rl: &RaylibHandle,
         camera: &mut Camera,
         mode: &mut RenderMode,
-    ) -> bool {
+    ) -> (bool, bool) {
         let mut changed = false;
+        let mut camera_moving = false;
 
         // Render mode switching
         if rl.is_key_pressed(KeyboardKey::KEY_ONE) && *mode != RenderMode::Flat {
@@ -42,30 +43,31 @@ impl EventHandler {
         if rmb_down {
             if mouse_delta.x != 0.0 || mouse_delta.y != 0.0 {
                 camera.pan(mouse_delta.x, mouse_delta.y);
+                camera_moving = true;
             }
-        } else if lmb_down {
-            if mouse_delta.x != 0.0 || mouse_delta.y != 0.0 {
-                let yaw = -mouse_delta.x * self.mouse_sensitivity;
-                let pitch = -mouse_delta.y * self.mouse_sensitivity;
-                camera.orbit(yaw, pitch);
-            }
+        } else if lmb_down && (mouse_delta.x != 0.0 || mouse_delta.y != 0.0) {
+            let yaw = -mouse_delta.x * self.mouse_sensitivity;
+            let pitch = -mouse_delta.y * self.mouse_sensitivity;
+            camera.orbit(yaw, pitch);
+            camera_moving = true;
         }
 
         // Zooming with mouse wheel
         let wheel = rl.get_mouse_wheel_move();
         if wheel != 0.0 {
             camera.zoom(wheel * self.zoom_speed);
+            camera_moving = true;
         }
 
         // Reset camera position and orientation
         if rl.is_key_pressed(KeyboardKey::KEY_R) {
             camera.center = Vec3A::ZERO;
             camera.update_basis_vectors();
+            camera_moving = true;
         }
 
-
         let camera_changed = camera.is_changed();
-        changed || camera_changed
+        (changed || camera_changed, camera_moving)
     }
 }
 

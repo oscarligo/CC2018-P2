@@ -7,4 +7,3 @@ edition = "2024"
 raylib = { version = "6.0.0", features = ["SUPPORT_IMAGE_GENERATION"] }
 image = { version = "0.25", default-features = false, features = ["hdr", "png"] }
 glam = "0.33.7"
-rayon = "1.12.0"

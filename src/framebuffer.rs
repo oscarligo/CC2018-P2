@@ -34,24 +34,32 @@ impl Framebuffer {
         }
     }
 
-    /// Paint a pixel in the framebuffer with the given color.
-    #[inline(always)]
-    pub fn set_pixel_color(&mut self, x: u32, y: u32, color: Color) {
-        if x < self.width && y < self.height {
-            let index = (y * self.width + x) as usize;
-            self.pixels[index] = color;
-        }
+    pub fn set_pixel_block(&mut self, x: u32, y: u32, size: u32, color: Color) {
+        fill_block(
+            &mut self.pixels,
+            self.width as usize,
+            self.height as usize,
+            x as usize,
+            y as usize,
+            size.max(1) as usize,
+            color,
+        );
     }
 
-    pub fn swap_buffers(&mut self, window: &mut RaylibHandle, raylib_thread: &RaylibThread) {
-        // `raylib::ffi::Color` garantiza 4 bytes contiguos en memoria (RGBA8888).
-        let total_bytes = self.pixels.len() * std::mem::size_of::<Color>();
-        let raw_pixel_slice = unsafe {
-            std::slice::from_raw_parts(self.pixels.as_ptr() as *const u8, total_bytes)
-        };
-
-        // Copia directa a la memoria de la textura en VRAM
-        let _ = self.texture.update_texture(raw_pixel_slice);
+    pub fn swap_buffers(
+        &mut self,
+        window: &mut RaylibHandle,
+        raylib_thread: &RaylibThread,
+        pixels_changed: bool,
+    ) {
+        if pixels_changed {
+            // `raylib::ffi::Color` garantiza 4 bytes contiguos en memoria (RGBA8888).
+            let total_bytes = self.pixels.len() * std::mem::size_of::<Color>();
+            let raw_pixel_slice = unsafe {
+                std::slice::from_raw_parts(self.pixels.as_ptr() as *const u8, total_bytes)
+            };
+            let _ = self.texture.update_texture(raw_pixel_slice);
+        }
 
         let mut renderer = window.begin_drawing(raylib_thread);
         renderer.clear_background(Color::BLACK);
@@ -60,12 +68,13 @@ impl Framebuffer {
     }
 
     // Parallel rendering function that divides the framebuffer into chunks for each thread.
-    pub fn render_parallel<F>(&mut self, render_pixel: F)
+    pub fn render_parallel<F>(&mut self, pixel_size: u32, render_pixel: F)
     where
         F: Fn(u32, u32) -> Color + Sync + Send,
     {
         let width = self.width as usize;
         let height = self.height as usize;
+        let pixel_size = pixel_size.max(1) as usize;
 
         if width == 0 || height == 0 {
             return;
@@ -76,7 +85,8 @@ impl Framebuffer {
             .unwrap_or(1);
 
         // Calculates the number of rows each thread will process
-        let rows_per_worker = (height + worker_count - 1) / worker_count;
+        let sample_rows = height.div_ceil(pixel_size);
+        let rows_per_worker = sample_rows.div_ceil(worker_count) * pixel_size;
         let chunk_pixel_count = rows_per_worker * width;
         let render_pixel = &render_pixel;
 
@@ -85,15 +95,45 @@ impl Framebuffer {
                 let start_row = (worker_id * rows_per_worker) as u32;
 
                 scope.spawn(move || {
-                    for (row_offset, scanline) in row_chunk.chunks_exact_mut(width).enumerate() {
-                        let current_y = start_row + row_offset as u32;
+                    let chunk_height = row_chunk.len() / width;
+                    for local_y in (0..chunk_height).step_by(pixel_size) {
+                        let sample_y =
+                            (start_row as usize + local_y + pixel_size / 2).min(height - 1) as u32;
 
-                        for (current_x, pixel) in scanline.iter_mut().enumerate() {
-                            *pixel = render_pixel(current_x as u32, current_y);
+                        for x in (0..width).step_by(pixel_size) {
+                            let sample_x = (x + pixel_size / 2).min(width - 1) as u32;
+                            let color = render_pixel(sample_x, sample_y);
+                            fill_block(
+                                row_chunk,
+                                width,
+                                chunk_height,
+                                x,
+                                local_y,
+                                pixel_size,
+                                color,
+                            );
                         }
                     }
                 });
             }
         });
+    }
+}
+
+// auxiliary function to fill a block of pixels in the framebuffer with a specific color
+fn fill_block(
+    pixels: &mut [Color],
+    width: usize,
+    height: usize,
+    x: usize,
+    y: usize,
+    size: usize,
+    color: Color,
+) {
+    let x_end = (x + size).min(width);
+    let y_end = (y + size).min(height);
+
+    for row in y..y_end {
+        pixels[row * width + x..row * width + x_end].fill(color);
     }
 }

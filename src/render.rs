@@ -1,8 +1,8 @@
-use crate::textures::background::BackgroundTexture;
 use crate::camera::Camera;
 use crate::caster::{cast_ray, Ray, RayIntersect};
 use crate::framebuffer::Framebuffer;
 use crate::material::Light;
+use crate::textures::background::BackgroundTexture;
 use crate::textures::texture::Texture;
 use glam::Vec3A;
 use raylib::prelude::*;
@@ -72,6 +72,7 @@ pub fn render(
     background: &BackgroundTexture,
     textures: &[Texture],
     parallel_rendering: bool,
+    pixel_size: u32,
 ) {
     if parallel_rendering {
         parallel_render(
@@ -83,6 +84,7 @@ pub fn render(
             mode,
             background,
             textures,
+            pixel_size,
         );
     } else {
         sequential_render(
@@ -94,6 +96,7 @@ pub fn render(
             mode,
             background,
             textures,
+            pixel_size,
         );
     }
 }
@@ -108,6 +111,7 @@ fn sequential_render(
     mode: RenderMode,
     background: &BackgroundTexture,
     textures: &[Texture],
+    pixel_size: u32,
 ) {
     let proj = ScreenProjection::new(
         framebuffer.width as f32,
@@ -116,18 +120,21 @@ fn sequential_render(
     );
     let ray_origin = camera.eye;
 
-    for y in 0..framebuffer.height {
-        let screen_y = proj.screen_y(y as f32);
+    let pixel_size = pixel_size.max(1);
+    for y in (0..framebuffer.height).step_by(pixel_size as usize) {
+        let sample_y = (y + pixel_size / 2).min(framebuffer.height - 1);
+        let screen_y = proj.screen_y(sample_y as f32);
 
-        for x in 0..framebuffer.width {
-            let screen_x = proj.screen_x(x as f32);
+        for x in (0..framebuffer.width).step_by(pixel_size as usize) {
+            let sample_x = (x + pixel_size / 2).min(framebuffer.width - 1);
+            let screen_x = proj.screen_x(sample_x as f32);
 
             let local_dir = Vec3A::new(screen_x, screen_y, -1.0);
             let ray_direction = camera.basis_change(local_dir).normalize();
 
             let ray = Ray::new(ray_origin, ray_direction);
             let color = cast_ray(&ray, objects, lights, mode, background, textures);
-            framebuffer.set_pixel_color(x, y, vec3_to_color(color));
+            framebuffer.set_pixel_block(x, y, pixel_size, vec3_to_color(color));
         }
     }
 }
@@ -142,6 +149,7 @@ fn parallel_render(
     mode: RenderMode,
     background: &BackgroundTexture,
     textures: &[Texture],
+    pixel_size: u32,
 ) {
     let proj = ScreenProjection::new(
         framebuffer.width as f32,
@@ -150,7 +158,7 @@ fn parallel_render(
     );
     let ray_origin = camera.eye;
 
-    framebuffer.render_parallel(|x, y| {
+    framebuffer.render_parallel(pixel_size, |x, y| {
         let screen_x = proj.screen_x(x as f32);
         let screen_y = proj.screen_y(y as f32);
 
