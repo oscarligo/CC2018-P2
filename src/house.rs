@@ -8,20 +8,20 @@ impl HousePrefab {
 
         const W: usize = 10;
         const D: usize = 10;
-        const WOOD: u8 = 4;
-        const ROOF: u8 = 5;
-        const GLASS: u8 = 6;
-        const EXT_FLOOR: u8 = 7; // Suelo exterior (porche)
-        const INT_FLOOR: u8 = 8; // Suelo interior de la casa
-        const INT_DETAIL: u8 = 9; // Detalles interiores (paredes, escaleras, etc.)
-        const PILLAR: u8 = 10; // Pilares de soporte del porche
+        const WOOD: u8 = 4; // Walls
+        const ROOF: u8 = 5; // Roof
+        const GLASS: u8 = 6; // Windows
+        const EXT_FLOOR: u8 = 7; // Exterior floor
+        const INT_FLOOR: u8 = 8; // Interior floor
+        const INT_DETAIL: u8 = 9; // Interior details 
+        const PILLAR: u8 = 10;  // Pillars for the porch
 
         let mut voxels = BTreeMap::new();
         let mut put = |x: usize, y: usize, z: usize, id: u8| {
             voxels.insert((x, y, z), id);
         };
 
-        // Suelo de planta baja (y=0) y segundo piso (y=4) con material interior
+        // Interior floor
         for x in 1..=8 {
             for z in 2..=8 {
                 put(x, 0, z, INT_FLOOR);
@@ -32,7 +32,7 @@ impl HousePrefab {
             }
         }
 
-        // Paredes y ventanas
+        // Walls and windows
         for x in 1..=8 {
             for z in 2..=8 {
                 if x != 1 && x != 8 && z != 2 && z != 8 {
@@ -52,7 +52,7 @@ impl HousePrefab {
             }
         }
 
-        // Techo
+        // Roof
         for x in 0..W {
             let roof_y = 8 + x.min(W - 1 - x) / 2;
             for z in 1..D {
@@ -66,7 +66,7 @@ impl HousePrefab {
             }
         }
 
-        // Porche exterior: piso exterior y tejadillo
+        // Porch and pillars
         for x in 2..=7 {
             for z in 0..=1 {
                 put(x, 0, z, EXT_FLOOR);
@@ -80,7 +80,7 @@ impl HousePrefab {
             put(x, 1, 1, PILLAR);
         }
 
-        // Escalera
+        // Interior stairs
         for step in 0..4 {
             for x in 6..=7 {
                 for y in 1..=(step + 1) {
@@ -89,7 +89,7 @@ impl HousePrefab {
             }
         }
 
-        // Muro divisorio y detalles interiores
+        // Interior details
         for z in 3..=6 {
             put(5, 5, z, INT_DETAIL);
         }

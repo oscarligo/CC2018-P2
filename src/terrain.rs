@@ -1,7 +1,8 @@
 use glam::Vec3A;
 use crate::cube::Cube;
 use crate::material::Material;
-use crate::structure::HousePrefab;
+use crate::house::HousePrefab;
+use crate::tree::TreePrefab;
 
 pub const PLATEAU_FREQ: f32 = 0.08;
 pub const PLATEAU_THRESHOLD: f32 = 0.35;
@@ -32,6 +33,10 @@ pub const HOUSE_ORIGIN_X: i32 = 10;
 pub const HOUSE_ORIGIN_Z: i32 = 10;
 pub const HOUSE_BASE_Y: usize = 1;
 
+pub const TREE_STEP_GRID: i32 = 5;         
+pub const TREE_CHANCE_PERCENT: u32 = 20;   
+pub const TREE_HOUSE_SAFE_RADIUS: i32 = 16; 
+
 pub const EDGE_SINK_LAYER_0: f32 = -1.2;
 pub const EDGE_SINK_LAYER_1: f32 = -0.8;
 pub const EDGE_SINK_LAYER_2: f32 = -0.4;
@@ -44,6 +49,7 @@ pub struct WorldGenerator {
     pub offset_x: i32,
     pub offset_z: i32,
     house: HousePrefab,
+    tree: TreePrefab,
 }
 
 impl WorldGenerator {
@@ -56,6 +62,7 @@ impl WorldGenerator {
             offset_x: 0,
             offset_z: 0,
             house: HousePrefab::new(),
+            tree: TreePrefab::new(),
         }
     }
 
@@ -76,6 +83,8 @@ impl WorldGenerator {
         int_floor_mat: Material,
         int_detail_mat: Material,
         pillar_mat: Material,
+        trunk_mat: Material,
+        leaves_mat: Material,
     ) -> Vec<Cube> {
         let total = self.size_x * self.size_y * self.size_z;
         let mut grid = vec![0u8; total];
@@ -84,7 +93,6 @@ impl WorldGenerator {
             (y * self.size_z + z) * self.size_x + x
         };
 
-        // 1. Generación de terreno base, mesetas, picos y estanques
         for x in 0..self.size_x {
             let world_x = (x as i32 + self.offset_x) as f32;
 
@@ -171,7 +179,66 @@ impl WorldGenerator {
             self.offset_z,
         );
 
-        // 3. Extracción de caras con culling
+        let margin = 2i32;
+        let min_wx = self.offset_x + margin;
+        let max_wx = self.offset_x + self.size_x as i32 - margin;
+        let min_wz = self.offset_z + margin;
+        let max_wz = self.offset_z + self.size_z as i32 - margin;
+
+        let start_wx = min_wx + (TREE_STEP_GRID - (min_wx.rem_euclid(TREE_STEP_GRID))).rem_euclid(TREE_STEP_GRID);
+        let start_wz = min_wz + (TREE_STEP_GRID - (min_wz.rem_euclid(TREE_STEP_GRID))).rem_euclid(TREE_STEP_GRID);
+
+        let mut wx = start_wx;
+        while wx <= max_wx {
+            let mut wz = start_wz;
+            while wz <= max_wz {
+                let local_x = (wx - self.offset_x) as usize;
+                let local_z = (wz - self.offset_z) as usize;
+
+                let seed = (((wx as u32).wrapping_mul(73856093)) ^ ((wz as u32).wrapping_mul(19349663)))
+                    .wrapping_mul(83492791);
+                let roll = seed % 100;
+
+                let dist_house_x = (wx - HOUSE_ORIGIN_X).abs();
+                let dist_house_z = (wz - HOUSE_ORIGIN_Z).abs();
+                let too_close_to_house = dist_house_x < TREE_HOUSE_SAFE_RADIUS && dist_house_z < TREE_HOUSE_SAFE_RADIUS;
+
+                if roll < TREE_CHANCE_PERCENT && !too_close_to_house {
+                    // Buscar la superficie sólida más alta en esta columna
+                    let mut ground_y = None;
+                    for y in (0..self.size_y).rev() {
+                        let block = grid[idx(local_x, y, local_z)];
+                        if block == 1 {
+                            ground_y = Some(y);
+                            break;
+                        } else if block != 0 {
+                            // No plantar sobre agua, picos ni estructuras
+                            break;
+                        }
+                    }
+
+                    if let Some(gy) = ground_y {
+                        if gy + 7 < self.size_y {
+                            self.tree.stamp_at_world_pos(
+                                &mut grid,
+                                self.size_x,
+                                self.size_y,
+                                self.size_z,
+                                wx,
+                                gy + 1,
+                                wz,
+                                self.offset_x,
+                                self.offset_z,
+                            );
+                        }
+                    }
+                }
+
+                wz += TREE_STEP_GRID;
+            }
+            wx += TREE_STEP_GRID;
+        }
+
         let mut cubes = Vec::new();
         let sx = self.size_x;
         let sy = self.size_y;
@@ -232,6 +299,8 @@ impl WorldGenerator {
                             8 => int_floor_mat,
                             9 => int_detail_mat,
                             10 => pillar_mat,
+                            11 => trunk_mat,
+                            12 => leaves_mat,
                             _ => terrain_mat,
                         };
 
