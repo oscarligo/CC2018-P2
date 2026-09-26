@@ -90,6 +90,9 @@ fn main() {
         Texture::load("assets/blocks/leaves/diffuse.png", true),
         Texture::load("assets/blocks/leaves/normal.png", false),
         Texture::load("assets/blocks/leaves/specular.png", false),
+        Texture::load("assets/blocks/cobblestone/diffuse.png", true),
+        Texture::load("assets/blocks/cobblestone/normal.png", false),
+        Texture::load("assets/blocks/cobblestone/specular.png", false),
     ];
 
     let background_texture = BackgroundTexture::load("assets/sky.png");
@@ -288,6 +291,18 @@ fn main() {
         },
     };
 
+    let cobblestone = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.95, 0.05, 0.0, 0.0],
+        specular_exponent: 6.0,
+        refractive_index: 1.0,
+        textures: MaterialTextureIds {
+            diffuse_id: Some(45),
+            normal_id: Some(46),
+            specular_id: Some(47),
+        },
+    };
+
 
     let lights = vec![
         Light {
@@ -298,7 +313,7 @@ fn main() {
     ];
     
     let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
-    let cubes = generator.generate(stone,ice);
+    let cubes = generator.generate(stone,ice,cobblestone);
 
     let mut scene = Bvh::new(cubes);
     let event_handler = EventHandler::default();
@@ -310,7 +325,7 @@ fn main() {
 
         if dx != 0 || dz != 0 {
             generator.shift(dx, dz);
-            let new_cubes = generator.generate( stone,ice);
+            let new_cubes = generator.generate( stone,ice,cobblestone);
             scene = Bvh::new(new_cubes);
         }
 

@@ -28,8 +28,14 @@ impl WorldGenerator {
         self.offset_z += dz;
     }
 
-    pub fn generate(&self, terrain_mat: Material, water_mat: Material) -> Vec<Cube> {
+    pub fn generate(
+        &self,
+        terrain_mat: Material,
+        water_mat: Material,
+        peak_mat: Material,
+    ) -> Vec<Cube> {
         let total = self.size_x * self.size_y * self.size_z;
+        // 0 = Aire, 1 = Terreno/Pico grande, 2 = Agua, 3 = Pico pequeño
         let mut grid = vec![0u8; total];
 
         let idx = |x: usize, y: usize, z: usize| -> usize {
@@ -44,9 +50,12 @@ impl WorldGenerator {
 
                 let plateau_wave = ((world_x * 0.08).sin() + (world_z * 0.08).cos()) * 0.5;
                 let plateau_extra = if plateau_wave > 0.35 { 1 } else { 0 };
+
                 let s_rare = (world_x * 0.065 + (world_z * 0.045).cos() * 2.0).sin() * 0.5 + 0.5;
                 let c_rare = (world_z * 0.065 + (world_x * 0.045).sin() * 2.0).cos() * 0.5 + 0.5;
                 let spire_factor = (s_rare * c_rare).powi(16);
+
+                let is_rare_spire = spire_factor > 0.32;
 
                 let peak_extra = if spire_factor > 0.72 {
                     9
@@ -97,7 +106,13 @@ impl WorldGenerator {
                     let max_y = extra_height.min(self.size_y.saturating_sub(1));
 
                     for y in 0..=max_y {
-                        grid[idx(x, y, z)] = 1;
+                        // Solo los picos pequeños (no raros) usan peak_mat; los picos grandes usan terrain_mat
+                        let block_type = if y > plateau_extra && !is_rare_spire {
+                            3
+                        } else {
+                            1
+                        };
+                        grid[idx(x, y, z)] = block_type;
                     }
                 }
             }
@@ -133,15 +148,13 @@ impl WorldGenerator {
                         0.0
                     };
 
-                    // Culling: evaluamos vecinos vacíos (o contacto agua/tierra)
                     let exposed = x == 0 || grid[idx(x - 1, y, z)] == 0
                         || x + 1 == sx || grid[idx(x + 1, y, z)] == 0
                         || y == 0 || grid[idx(x, y - 1, z)] == 0
                         || y + 1 == sy || grid[idx(x, y + 1, z)] == 0
                         || z == 0 || grid[idx(x, y, z - 1)] == 0
                         || z + 1 == sz || grid[idx(x, y, z + 1)] == 0
-                        // Si la tierra colinda con agua, la cara de la cuenca debe verse
-                        || (cell_type == 1 && (
+                        || (cell_type != 2 && (
                             (x > 0 && grid[idx(x - 1, y, z)] == 2) ||
                             (x + 1 < sx && grid[idx(x + 1, y, z)] == 2) ||
                             (z > 0 && grid[idx(x, y, z - 1)] == 2) ||
@@ -155,7 +168,12 @@ impl WorldGenerator {
                             (z as f32 - sz as f32 * 0.5) * self.block_size,
                         );
 
-                        let mat = if cell_type == 2 { water_mat } else { terrain_mat };
+                        let mat = match cell_type {
+                            2 => water_mat,
+                            3 => peak_mat,
+                            _ => terrain_mat,
+                        };
+
                         cubes.push(Cube::new(center, self.block_size, mat));
                     }
                 }
