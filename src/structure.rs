@@ -11,23 +11,27 @@ impl HousePrefab {
         const WOOD: u8 = 4;
         const ROOF: u8 = 5;
         const GLASS: u8 = 6;
-        const FLOOR: u8 = 7;
+        const EXT_FLOOR: u8 = 7; // Suelo exterior (porche)
+        const INT_FLOOR: u8 = 8; // Suelo interior de la casa
+        const INT_DETAIL: u8 = 9; // Detalles interiores (paredes, escaleras, etc.)
 
         let mut voxels = BTreeMap::new();
         let mut put = |x: usize, y: usize, z: usize, id: u8| {
             voxels.insert((x, y, z), id);
         };
 
+        // Suelo de planta baja (y=0) y segundo piso (y=4) con material interior
         for x in 1..=8 {
             for z in 2..=8 {
-                put(x, 0, z, WOOD);
+                put(x, 0, z, INT_FLOOR);
                 let stairwell = (6..=7).contains(&x) && (3..=6).contains(&z);
                 if !stairwell {
-                    put(x, 4, z, WOOD);
+                    put(x, 4, z, INT_FLOOR);
                 }
             }
         }
 
+        // Paredes y ventanas
         for x in 1..=8 {
             for z in 2..=8 {
                 if x != 1 && x != 8 && z != 2 && z != 8 {
@@ -37,11 +41,9 @@ impl HousePrefab {
                     if z == 2 && (4..=5).contains(&x) && y <= 3 {
                         continue;
                     }
-                    let window_height = (2..=3).contains(&y)
-                        || (6..=7).contains(&y);
+                    let window_height = (2..=3).contains(&y) || (6..=7).contains(&y);
                     let side = (x == 1 || x == 8) && (4..=5).contains(&z);
-                    let front = z == 2
-                        && ((2..=3).contains(&x) || (6..=7).contains(&x));
+                    let front = z == 2 && ((2..=3).contains(&x) || (6..=7).contains(&x));
                     let back = z == 8 && (3..=6).contains(&x);
                     let window = window_height && (side || front || back);
                     put(x, y, z, if window { GLASS } else { WOOD });
@@ -49,6 +51,7 @@ impl HousePrefab {
             }
         }
 
+        // Techo
         for x in 0..W {
             let roof_y = 8 + x.min(W - 1 - x) / 2;
             for z in 1..D {
@@ -62,9 +65,10 @@ impl HousePrefab {
             }
         }
 
+        // Porche exterior: piso exterior y tejadillo
         for x in 2..=7 {
             for z in 0..=1 {
-                put(x, 0, z, FLOOR);
+                put(x, 0, z, EXT_FLOOR);
                 put(x, 4, z, ROOF);
             }
         }
@@ -75,25 +79,26 @@ impl HousePrefab {
             put(x, 1, 1, WOOD);
         }
 
+        // Escalera
         for step in 0..4 {
             for x in 6..=7 {
                 for y in 1..=(step + 1) {
-                    put(x, y, 3 + step, WOOD);
+                    put(x, y, 3 + step, INT_FLOOR);
                 }
             }
         }
 
+        // Muro divisorio y detalles interiores
         for z in 3..=6 {
-            put(5, 5, z, WOOD);
+            put(5, 5, z, INT_DETAIL);
         }
-
         for x in 2..=3 {
-            put(x, 1, 4, WOOD);
+            put(x, 1, 4, INT_DETAIL);
         }
-        put(2, 1, 3, WOOD);
+        put(2, 1, 3, INT_DETAIL);
         for x in 2..=3 {
             for z in 5..=6 {
-                put(x, 5, z, WOOD);
+                put(x, 5, z, INT_DETAIL);
             }
         }
 

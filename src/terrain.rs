@@ -72,7 +72,9 @@ impl WorldGenerator {
         wall_mat: Material,
         roof_mat: Material,
         glass_mat: Material,
-        floor_mat: Material,
+        ext_floor_mat: Material,
+        int_floor_mat: Material,
+        int_detail_mat: Material,
     ) -> Vec<Cube> {
         let total = self.size_x * self.size_y * self.size_z;
         let mut grid = vec![0u8; total];
@@ -225,7 +227,9 @@ impl WorldGenerator {
                             4 => wall_mat,
                             5 => roof_mat,
                             6 => glass_mat,
-                            7 => floor_mat, 
+                            7 => ext_floor_mat, 
+                            8 => int_floor_mat,
+                            9 => int_detail_mat,
                             _ => terrain_mat,
                         };
 
