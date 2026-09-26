@@ -1,3 +1,4 @@
+mod bvh;
 mod camera;
 mod caster;
 mod cube;
@@ -7,6 +8,7 @@ mod material;
 mod render;
 mod textures;
 
+use bvh::Bvh;
 use camera::Camera;
 use cube::Cube;
 use events::EventHandler;
@@ -76,6 +78,15 @@ fn main() {
         Texture::load("assets/blocks/moss/diffuse.png", true),
         Texture::load("assets/blocks/moss/normal.png", false),
         Texture::load("assets/blocks/moss/specular.png", false),
+        Texture::load("assets/blocks/lantern/diffuse.png", true),
+        Texture::load("assets/blocks/lantern/normal.png", false),
+        Texture::load("assets/blocks/lantern/specular.png", false),
+        Texture::load("assets/blocks/q_brick/diffuse.png", true),
+        Texture::load("assets/blocks/q_brick/normal.png", false),
+        Texture::load("assets/blocks/q_brick/specular.png", false),
+        Texture::load("assets/blocks/leaves/diffuse.png", true),
+        Texture::load("assets/blocks/leaves/normal.png", false),
+        Texture::load("assets/blocks/leaves/specular.png", false),
     ];
 
     let background_texture = BackgroundTexture::load("assets/sky.png");
@@ -225,6 +236,42 @@ fn main() {
         },
     };
 
+    let lantern = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.95, 0.05, 0.0, 0.0],
+        specular_exponent: 6.0,
+        refractive_index: 1.0,
+        textures: MaterialTextureIds {
+            diffuse_id: Some(36),
+            normal_id: Some(37),
+            specular_id: Some(38),
+        },
+    };
+
+    let q_brick = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.95, 0.05, 0.0, 0.0],
+        specular_exponent: 6.0,
+        refractive_index: 1.0,
+        textures: MaterialTextureIds {
+            diffuse_id: Some(39),
+            normal_id: Some(40),
+            specular_id: Some(41),
+        },
+    };
+
+    let leaves = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.95, 0.05, 0.0, 0.0],
+        specular_exponent: 6.0,
+        refractive_index: 1.0,
+        textures: MaterialTextureIds {
+            diffuse_id: Some(42),
+            normal_id: Some(43),
+            specular_id: Some(44),
+        },
+    };
+
     let materials = [
         ice,
         white_glass,
@@ -235,7 +282,10 @@ fn main() {
         copper,
         prismarine,
         gold_block,
+        glowstone,
     ];
+
+
 
     // Generates a grid of cubes with different materials
     let objects: Vec<Cube> = (0..GRID_SIZE)
@@ -251,14 +301,9 @@ fn main() {
 
     let lights = vec![
         Light {
-            position: Vec3A::new(-20.0, 20.0, 20.0),
+            position: Vec3A::new(0.0, 20.0, 50.0),
             intensity: 3.0,
             color: Vec3A::new(1.0, 1.0, 1.0),
-        },
-        Light {
-            position: Vec3A::new(10.0, 5.0, 0.0),
-            intensity: 1.0,
-            color: Vec3A::new(0.8, 0.85, 1.0),
         },
     ];
 
@@ -293,7 +338,7 @@ fn main() {
         let z = base_z + ((row as f32) - 7.5);
         for (col, &cell) in line.iter().enumerate() {
             let x = (col as f32) - 7.5;
-            let material = if cell == 1 { stone } else { stone };
+            let material = if cell == 1 { ice } else { stone };
             let y = if cell == 1 { water_y } else { base_y };
 
             grid.push(Cube::new(
@@ -308,6 +353,7 @@ fn main() {
 };
 
 
+    let scene = Bvh::new(objects);
     let event_handler = EventHandler::default();
     let mut needs_full_render = false;
 
@@ -319,7 +365,7 @@ fn main() {
         if rendered {
             render(
                 &mut framebuffer,
-                &objects2,
+                &scene,
                 &lights,
                 &camera,
                 60.0,

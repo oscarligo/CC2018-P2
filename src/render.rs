@@ -1,5 +1,6 @@
 use crate::camera::Camera;
-use crate::caster::{cast_ray, Ray, RayIntersect};
+use crate::bvh::Bvh;
+use crate::caster::{cast_ray, Ray};
 use crate::framebuffer::Framebuffer;
 use crate::material::Light;
 use crate::textures::background::BackgroundTexture;
@@ -64,7 +65,7 @@ impl ScreenProjection {
 
 pub fn render(
     framebuffer: &mut Framebuffer,
-    objects: &[impl RayIntersect + Sync],
+    objects: &Bvh,
     lights: &[Light],
     camera: &Camera,
     fov_degrees: f32,
@@ -104,7 +105,7 @@ pub fn render(
 // Sequential rendering function (for testing purposes)
 fn sequential_render(
     framebuffer: &mut Framebuffer,
-    objects: &[impl RayIntersect + Sync],
+    objects: &Bvh,
     lights: &[Light],
     camera: &Camera,
     fov_degrees: f32,
@@ -142,7 +143,7 @@ fn sequential_render(
 // Parallel rendering function
 fn parallel_render(
     framebuffer: &mut Framebuffer,
-    objects: &[impl RayIntersect + Sync],
+    objects: &Bvh,
     lights: &[Light],
     camera: &Camera,
     fov_degrees: f32,

@@ -1,4 +1,5 @@
 use glam::Vec3A;
+use crate::bvh::Bvh;
 use crate::material::*;
 use crate::render::RenderMode;
 use crate::textures::background::BackgroundTexture;
@@ -11,7 +12,7 @@ use crate::textures::texture::Texture;
     the selected render mode.
 */
 
-const BIAS: f32 = 0.001;
+pub(crate) const BIAS: f32 = 0.001;
 const MAX_RECURSION_DEPTH: u32 = 2;
 
 #[derive(Debug, Clone, Copy)]
@@ -90,22 +91,6 @@ pub trait RayIntersect: Sync + Send {
     fn intersect(&self, ray: &Ray) -> Intersection; 
 }
 
-#[inline(always)]
-fn find_closest_hit(ray: &Ray, objects: &[impl RayIntersect + Sync]) -> Intersection {
-    let mut intersection = Intersection::no_intersection();
-    let mut z_buffer = f32::INFINITY;
-
-    for object in objects {
-        let tmp = object.intersect(ray);
-        if tmp.is_intersecting && tmp.distance > BIAS && tmp.distance < z_buffer {
-            z_buffer = tmp.distance;
-            intersection = tmp;
-        }
-    }
-
-    intersection
-}
-
 // Computes the perturbed normal at the intersection point using the normal map, if available.
 #[inline(always)]
 fn get_perturbed_normal(hit: &Intersection, textures: &[Texture]) -> Vec3A {
@@ -122,13 +107,13 @@ fn get_perturbed_normal(hit: &Intersection, textures: &[Texture]) -> Vec3A {
 // shading based on the render mode.
 pub fn cast_ray(
     ray: &Ray,
-    objects: &[impl RayIntersect + Sync],
+    objects: &Bvh,
     lights: &[Light],
     mode: RenderMode, 
     background: &BackgroundTexture,
     textures: &[Texture],
 ) -> Vec3A {
-    let intersection = find_closest_hit(ray, objects);
+    let intersection = objects.closest_hit(ray);
 
     if !intersection.is_intersecting {
         return background.sample(ray.direction);
@@ -176,7 +161,7 @@ pub fn cast_ray(
 // Recursively casts a ray through the scene, handling reflections and refractions.
 fn cast_ray_recursive(
     ray: &Ray,
-    objects: &[impl RayIntersect + Sync],
+    objects: &Bvh,
     lights: &[Light],
     background: &BackgroundTexture,
     textures: &[Texture],
@@ -224,10 +209,7 @@ fn cast_ray_recursive(
 
             let shadow_ray = Ray::new(hit.point + normal_offset, light_dir);
 
-            let in_shadow = objects.iter().any(|obj| {
-                let s = obj.intersect(&shadow_ray);
-                s.is_intersecting && s.distance < light_dist && s.distance > BIAS
-            });
+            let in_shadow = objects.is_occluded(&shadow_ray, light_dist);
 
             if in_shadow {
                 continue;
@@ -259,7 +241,7 @@ fn cast_ray_recursive(
         };
 
         let reflect_ray = Ray::new(hit.point + normal_offset, reflect_dir);
-        let sec_hit = find_closest_hit(&reflect_ray, objects);
+        let sec_hit = objects.closest_hit(&reflect_ray);
 
         reflection_color = if sec_hit.is_intersecting {
             cast_ray_recursive(&reflect_ray, objects, lights, background, textures, depth + 1, &sec_hit)
@@ -281,7 +263,7 @@ fn cast_ray_recursive(
             };
 
             let refract_ray = Ray::new(hit.point + normal_offset, refract_dir);
-            let sec_hit = find_closest_hit(&refract_ray, objects);
+            let sec_hit = objects.closest_hit(&refract_ray);
 
             let transmitted_color = if sec_hit.is_intersecting {
                 cast_ray_recursive(&refract_ray, objects, lights, background, textures, depth + 1, &sec_hit)
