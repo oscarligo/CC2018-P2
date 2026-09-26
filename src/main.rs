@@ -8,6 +8,7 @@ mod material;
 mod render;
 mod terrain;
 mod textures;
+mod structure;
 
 use bvh::Bvh;
 use camera::Camera;
@@ -313,7 +314,7 @@ fn main() {
     ];
     
     let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
-    let cubes = generator.generate(stone,ice,cobblestone);
+    let cubes = generator.generate(stone,ice,brick, wood, gold_block, white_glass, cobblestone);
 
     let mut scene = Bvh::new(cubes);
     let event_handler = EventHandler::default();
@@ -325,7 +326,7 @@ fn main() {
 
         if dx != 0 || dz != 0 {
             generator.shift(dx, dz);
-            let new_cubes = generator.generate( stone,ice,cobblestone);
+            let new_cubes = generator.generate( stone, ice, brick, wood, gold_block, white_glass, cobblestone);
             scene = Bvh::new(new_cubes);
         }
 
