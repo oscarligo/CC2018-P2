@@ -105,10 +105,8 @@ impl HousePrefab {
         }
 
         // lights
-        put(1, 3, 1, LIGHT);
-        put(8, 3, 1, LIGHT);
-        put(1, 3, 9, LIGHT);
-        put(8, 3, 9, LIGHT);
+        put(0, 3, 6, LIGHT);
+        put(9, 3, 6, LIGHT);
         put(4, 3, 5, LIGHT);
         put(4, 9, 5, LIGHT);
 

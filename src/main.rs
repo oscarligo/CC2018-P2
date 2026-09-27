@@ -109,6 +109,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(0),
             normal_id: Some(1),
@@ -122,6 +123,7 @@ fn main() {
         specular_exponent: 8.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(3),
             normal_id: Some(4),
@@ -135,6 +137,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(30),
             normal_id: Some(31),
@@ -149,6 +152,7 @@ fn main() {
         specular_exponent: 1.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(6),
             normal_id: Some(7),
@@ -161,7 +165,8 @@ fn main() {
         albedo: [1.0, 0.0, 0.0, 0.0],
         specular_exponent: 1.0,
         refractive_index: 1.0,
-        emission_strength: 1.5,
+        emission_strength: 5.5,
+        emission_color: Vec3A::new(1.0, 0.9, 0.7),
         textures: MaterialTextureIds {
             diffuse_id: Some(9),
             normal_id: Some(10),
@@ -175,6 +180,7 @@ fn main() {
         specular_exponent: 90.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(12),
             normal_id: Some(13),
@@ -188,6 +194,7 @@ fn main() {
         specular_exponent: 90.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(15),
             normal_id: Some(16),
@@ -201,6 +208,7 @@ fn main() {
         specular_exponent: 90.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(18),
             normal_id: Some(19),
@@ -214,6 +222,7 @@ fn main() {
         specular_exponent: 125.0,
         refractive_index: 1.52,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(21),
             normal_id: Some(22),
@@ -227,6 +236,7 @@ fn main() {
         specular_exponent: 90.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(24),
             normal_id: Some(25),
@@ -240,6 +250,7 @@ fn main() {
         specular_exponent: 1425.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(27),
             normal_id: Some(28),
@@ -253,6 +264,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(30),
             normal_id: Some(31),
@@ -266,6 +278,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(33),
             normal_id: Some(34),
@@ -278,7 +291,8 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
-        emission_strength: 2.0,
+        emission_strength: 10.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(36),
             normal_id: Some(37),
@@ -292,6 +306,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(39),
             normal_id: Some(40),
@@ -305,6 +320,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(42),
             normal_id: Some(43),
@@ -318,6 +334,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(45),
             normal_id: Some(46),
@@ -331,6 +348,7 @@ fn main() {
         specular_exponent: 6.0,
         refractive_index: 1.0,
         emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
         textures: MaterialTextureIds {
             diffuse_id: Some(48),
             normal_id: Some(49),
@@ -339,18 +357,20 @@ fn main() {
     };
 
 
-    let lights = vec![
-        Light {
-            position: Vec3A::new(0.0, 20.0, 50.0),
-            intensity: 3.0,
-            color: Vec3A::new(1.0, 1.0, 1.0),
-        },
-    ];
+    let sun = Light {
+        position: Vec3A::new(0.0, 20.0, 50.0),
+        intensity: 3.0,
+        color: Vec3A::ONE,
+        attenuation: 0.0,
+    };
+
+    let mut lights = vec![sun];
     
     let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
-    let cubes = generator.generate(stone,ice,brick, wood, gold_block, white_glass, cobblestone, q_brick, copper, log, log, moss, lantern);
+    let cubes = generator.generate(stone,ice,brick, wood, gold_block, white_glass, cobblestone, q_brick, copper, log, log, moss, glowstone);
 
     let mut scene = Bvh::new(cubes);
+    lights.extend(scene.emissive_lights());
     let event_handler = EventHandler::default();
     let mut needs_full_render = true; 
 
@@ -360,8 +380,11 @@ fn main() {
 
         if dx != 0 || dz != 0 {
             generator.shift(dx, dz);
-            let new_cubes = generator.generate( stone, ice, brick, wood, gold_block, white_glass, cobblestone,q_brick, copper, log, log, moss, lantern);
+            let new_cubes = generator.generate( stone, ice, brick, wood, gold_block, white_glass, cobblestone,q_brick, copper, log, log, moss, glowstone);
             scene = Bvh::new(new_cubes);
+            lights.clear();
+            lights.push(sun);
+            lights.extend(scene.emissive_lights());
         }
 
         let rendered = changed || needs_full_render;

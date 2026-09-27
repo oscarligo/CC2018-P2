@@ -141,9 +141,12 @@ pub fn cast_ray(
             let n = get_perturbed_normal(&intersection, textures);
             let mut light_sum = 0.1;
             for light in lights {
-                let light_dir = (light.position - intersection.point).normalize();
+                let light_vec = light.position - intersection.point;
+                let light_dir = light_vec.normalize();
                 let n_dot_l = n.dot(light_dir).max(0.0);
-                light_sum += n_dot_l * light.intensity;
+                let intensity = light.intensity
+                    / (1.0 + light.attenuation * light_vec.length_squared());
+                light_sum += n_dot_l * intensity;
             }
             let color = if let Some(diff_id) = intersection.material.textures.diffuse_id {
                 textures[diff_id].sample(intersection.uv.0, intersection.uv.1)
@@ -200,6 +203,8 @@ fn cast_ray_recursive(
             let light_vec = light.position - hit.point;
             let light_dist = light_vec.length();
             let light_dir = light_vec / light_dist;
+            let intensity = light.intensity
+                / (1.0 + light.attenuation * light_dist * light_dist);
 
             let normal_offset = if light_dir.dot(hit.normal) < 0.0 {
                 -hit.normal * BIAS
@@ -216,7 +221,7 @@ fn cast_ray_recursive(
             }
 
             let n_dot_l = shading_normal.dot(light_dir).max(0.0);
-            diffuse_light += light.color * (light.intensity * n_dot_l);
+            diffuse_light += light.color * (intensity * n_dot_l);
 
             if hit.material.albedo[1] > 0.0 && n_dot_l > 0.0 {
                 let reflect_dir = reflect(-light_dir, shading_normal);
@@ -224,7 +229,7 @@ fn cast_ray_recursive(
                 let spec_angle = view_dir.dot(reflect_dir).max(0.0);
                 if spec_angle > 0.0 {
                     let spec = spec_angle.powf(hit.material.specular_exponent);
-                    specular_light += light.color * (light.intensity * spec * specular_factor);
+                    specular_light += light.color * (intensity * spec * specular_factor);
                 }
             }
         }
@@ -279,7 +284,7 @@ fn cast_ray_recursive(
     }
 
     let ambient = base_diffuse * 0.05;
-    let emission = base_diffuse * hit.material.emission_strength;
+    let emission = base_diffuse * hit.material.emission_color * hit.material.emission_strength;
 
     emission
         + ambient

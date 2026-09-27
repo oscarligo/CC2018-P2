@@ -29,6 +29,7 @@ pub struct Material {
     pub specular_exponent: f32, // Also known as "shininess", controls the size of specular highlights
     pub refractive_index: f32,  // Index of refraction for transparent materials
     pub emission_strength: f32, // Light emitted by the material, independent of scene lights
+    pub emission_color: Vec3A,  // Color of the emitted light
     pub textures: MaterialTextureIds, // IDs of the textures used by this material
 }
 
@@ -41,6 +42,7 @@ pub struct Light {
     pub position: Vec3A, // Position of the light in world space
     pub intensity: f32, // Intensity of the light, affecting how bright it appears
     pub color: Vec3A, // Color of the light, allowing for colored lighting effects
+    pub attenuation: f32, // Quadratic falloff; zero for directional-like lights
 }
 
 impl Material {
@@ -51,6 +53,7 @@ impl Material {
             specular_exponent: 0.0,
             refractive_index: 1.0,
             emission_strength: 0.0,
+            emission_color: Vec3A::ONE,
             textures: MaterialTextureIds::empty(),
         }
     }

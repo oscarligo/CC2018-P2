@@ -1,5 +1,6 @@
 use crate::caster::{BIAS, Intersection, Ray, RayIntersect};
 use crate::cube::Cube;
+use crate::material::Light;
 use glam::Vec3A;
 
 pub struct Bvh {
@@ -102,6 +103,18 @@ impl Bvh {
         hit
     }
 
+    pub fn emissive_lights(&self) -> impl Iterator<Item = Light> + '_ {
+        self.objects
+            .iter()
+            .filter(|cube| cube.material.emission_strength > 0.0)
+            .map(|cube| Light {
+                position: cube.center,
+                intensity: cube.material.emission_strength,
+                color: cube.material.emission_color,
+                attenuation: 0.1,
+            })
+    }
+
     fn visit(
         &self,
         index: usize,
@@ -153,22 +166,39 @@ impl Bvh {
     }
 
     pub fn is_occluded(&self, ray: &Ray, max_distance: f32) -> bool {
-        !self.nodes.is_empty() && self.occluded_node(0, ray, max_distance)
+        let light_position = ray.origin + ray.direction * max_distance;
+        !self.nodes.is_empty() && self.occluded_node(0, ray, max_distance, light_position)
     }
 
-    fn occluded_node(&self, index: usize, ray: &Ray, max_distance: f32) -> bool {
+    fn occluded_node(
+        &self,
+        index: usize,
+        ray: &Ray,
+        max_distance: f32,
+        light_position: Vec3A,
+    ) -> bool {
         let node = &self.nodes[index];
         if node.entry(ray, max_distance).is_none() {
             return false;
         }
         match node.kind {
             NodeKind::Leaf { start, end } => self.indices[start..end].iter().any(|&index| {
-                let hit = self.objects[index].intersect(ray);
-                hit.is_intersecting && hit.distance > BIAS && hit.distance < max_distance
+                let object = &self.objects[index];
+                let hit = object.intersect(ray);
+                let contains_light = light_position.x >= object.min_b.x
+                    && light_position.x <= object.max_b.x
+                    && light_position.y >= object.min_b.y
+                    && light_position.y <= object.max_b.y
+                    && light_position.z >= object.min_b.z
+                    && light_position.z <= object.max_b.z;
+                hit.is_intersecting
+                    && hit.distance > BIAS
+                    && hit.distance < max_distance
+                    && !contains_light
             }),
             NodeKind::Branch { left, right } => {
-                self.occluded_node(left, ray, max_distance)
-                    || self.occluded_node(right, ray, max_distance)
+                self.occluded_node(left, ray, max_distance, light_position)
+                    || self.occluded_node(right, ray, max_distance, light_position)
             }
         }
     }
