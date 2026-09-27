@@ -29,13 +29,22 @@ pub const POND_BASE_RADIUS: f32 = 6.0;
 pub const POND_RADIUS_VARIATION: f32 = 1.5;
 pub const POND_WATER_Y_OFFSET: f32 = -0.35;
 
-pub const HOUSE_ORIGIN_X: i32 = 10;
-pub const HOUSE_ORIGIN_Z: i32 = 10;
+pub const HOUSE_ORIGIN_X: i32 = 11;
+pub const HOUSE_ORIGIN_Z: i32 = 11;
 pub const HOUSE_BASE_Y: usize = 1;
 
-pub const TREE_STEP_GRID: i32 = 5;         
-pub const TREE_CHANCE_PERCENT: u32 = 20;   
-pub const TREE_HOUSE_SAFE_RADIUS: i32 = 16; 
+pub const INITIAL_SPIRE_X: f32 = 25.0;
+pub const INITIAL_SPIRE_Z: f32 = 23.0;
+
+pub const INITIAL_POND_X: f32 = 5.0;
+pub const INITIAL_POND_Z: f32 = 22.0;
+pub const INITIAL_POND_RADIUS: f32 = 4.5;
+
+pub const TREE_STEP_GRID: i32 = 5;       
+pub const TREE_CHANCE_PERCENT: u32 = 35; 
+
+pub const BIG_TREE_X: i32 = HOUSE_ORIGIN_X + 5;
+pub const BIG_TREE_Z: i32 = HOUSE_ORIGIN_Z + 12;
 
 pub const EDGE_SINK_LAYER_0: f32 = -1.2;
 pub const EDGE_SINK_LAYER_1: f32 = -0.8;
@@ -106,9 +115,20 @@ impl WorldGenerator {
                 let c_rare = (world_z * SPIRE_FREQ_COARSE + (world_x * SPIRE_FREQ_FINE).sin() * 2.0).cos() * 0.5 + 0.5;
                 let spire_factor = (s_rare * c_rare).powi(SPIRE_EXPONENT);
 
-                let is_rare_spire = spire_factor > SPIRE_DETECTION_THRESHOLD;
+                let dist_init_spire_sq = (world_x - INITIAL_SPIRE_X).powi(2) + (world_z - INITIAL_SPIRE_Z).powi(2);
+                let is_initial_spire = dist_init_spire_sq < 14.0;
 
-                let peak_extra = if spire_factor > 0.72 {
+                let is_rare_spire = is_initial_spire || spire_factor > SPIRE_DETECTION_THRESHOLD;
+
+                let peak_extra = if is_initial_spire {
+                    if dist_init_spire_sq < 2.0 {
+                        9
+                    } else if dist_init_spire_sq < 6.0 {
+                        6
+                    } else {
+                        3
+                    }
+                } else if spire_factor > 0.72 {
                     SPIRE_HEIGHT_PEAK
                 } else if spire_factor > 0.50 {
                     SPIRE_HEIGHT_MID
@@ -147,7 +167,15 @@ impl WorldGenerator {
 
                 let angle = local_pz.atan2(local_px);
                 let pond_radius = POND_BASE_RADIUS + POND_RADIUS_VARIATION * (angle * 3.0).sin();
-                let is_in_pond = pond_dist_sq < (pond_radius * pond_radius) && peak_extra == 0;
+                let is_procedural_pond = pond_dist_sq < (pond_radius * pond_radius) && peak_extra == 0;
+
+                let dx_init_pond = world_x - INITIAL_POND_X;
+                let dz_init_pond = world_z - INITIAL_POND_Z;
+                let angle_init = dz_init_pond.atan2(dx_init_pond);
+                let r_init_mod = INITIAL_POND_RADIUS + 0.8 * (angle_init * 2.0).sin();
+                let is_initial_pond = (dx_init_pond * dx_init_pond + dz_init_pond * dz_init_pond) < (r_init_mod * r_init_mod);
+
+                let is_in_pond = (is_initial_pond || is_procedural_pond) && peak_extra == 0;
 
                 if is_in_pond {
                     grid[idx(x, 0, z)] = 2; // Agua
@@ -179,6 +207,7 @@ impl WorldGenerator {
             self.offset_z,
         );
 
+
         let margin = 2i32;
         let min_wx = self.offset_x + margin;
         let max_wx = self.offset_x + self.size_x as i32 - margin;
@@ -199,20 +228,29 @@ impl WorldGenerator {
                     .wrapping_mul(83492791);
                 let roll = seed % 100;
 
-                let dist_house_x = (wx - HOUSE_ORIGIN_X).abs();
-                let dist_house_z = (wz - HOUSE_ORIGIN_Z).abs();
-                let too_close_to_house = dist_house_x < TREE_HOUSE_SAFE_RADIUS && dist_house_z < TREE_HOUSE_SAFE_RADIUS;
+                let in_house_footprint = wx >= HOUSE_ORIGIN_X - 1 && wx <= HOUSE_ORIGIN_X + 10
+                    && wz >= HOUSE_ORIGIN_Z - 1 && wz <= HOUSE_ORIGIN_Z + 10;
 
-                if roll < TREE_CHANCE_PERCENT && !too_close_to_house {
-                    // Buscar la superficie sólida más alta en esta columna
+                let in_front_corridor = wx >= HOUSE_ORIGIN_X - 2 && wx <= HOUSE_ORIGIN_X + 11
+                    && wz >= HOUSE_ORIGIN_Z - 9 && wz < HOUSE_ORIGIN_Z;
+
+                let near_big_tree = (wx - BIG_TREE_X).abs() <= 3 && (wz - BIG_TREE_Z).abs() <= 3;
+
+                let dist_to_spire_sq = (wx as f32 - INITIAL_SPIRE_X).powi(2) + (wz as f32 - INITIAL_SPIRE_Z).powi(2);
+                let on_spire_area = dist_to_spire_sq < 18.0;
+
+                let blocked = in_house_footprint || in_front_corridor || near_big_tree || on_spire_area;
+
+                if roll < TREE_CHANCE_PERCENT && !blocked {
                     let mut ground_y = None;
                     for y in (0..self.size_y).rev() {
                         let block = grid[idx(local_x, y, local_z)];
                         if block == 1 {
-                            ground_y = Some(y);
+                            if y <= 2 {
+                                ground_y = Some(y);
+                            }
                             break;
                         } else if block != 0 {
-                            // No plantar sobre agua, picos ni estructuras
                             break;
                         }
                     }
