@@ -6,10 +6,8 @@ mod events;
 mod framebuffer;
 mod material;
 mod render;
-mod terrain;
+mod world_gen;
 mod textures;
-mod house;
-mod tree;
 
 use bvh::Bvh;
 use camera::Camera;
@@ -19,7 +17,7 @@ use glam::Vec3A;
 use material::{Light, Material, MaterialTextureIds};
 use raylib::prelude::*;
 use render::{render, RenderMode};
-use terrain::WorldGenerator;
+use world_gen::terrain::WorldGenerator;
 use textures::background::BackgroundTexture;
 use textures::texture::Texture;
 
@@ -228,6 +226,16 @@ fn main() {
             normal_id: Some(22),
             specular_id: Some(23),
         },
+    };
+
+    let no_texture_glass: Material = Material {
+        diffuse_color: Vec3A::splat(1.0),
+        albedo: [0.0, 0.5, 0.1, 0.8],
+        specular_exponent: 125.0,
+        refractive_index: 1.52,
+        emission_strength: 0.0,
+        emission_color: Vec3A::ONE,
+        textures: MaterialTextureIds::empty(),
     };
 
     let prismarine = Material {

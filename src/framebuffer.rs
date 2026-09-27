@@ -64,7 +64,6 @@ impl Framebuffer {
         let mut renderer = window.begin_drawing(raylib_thread);
         renderer.clear_background(Color::BLACK);
         renderer.draw_texture(&self.texture, 0, 0, Color::WHITE);
-        renderer.draw_fps(10, 10);
     }
 
     // Parallel rendering function that divides the framebuffer into chunks for each thread.

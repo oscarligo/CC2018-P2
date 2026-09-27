@@ -1,8 +1,8 @@
 use glam::Vec3A;
 use crate::cube::Cube;
 use crate::material::Material;
-use crate::house::HousePrefab;
-use crate::tree::TreePrefab;
+use crate::world_gen::house::HousePrefab;
+use crate::world_gen::tree::TreePrefab;
 
 pub const PLATEAU_FREQ: f32 = 0.08;
 pub const PLATEAU_THRESHOLD: f32 = 0.35;
