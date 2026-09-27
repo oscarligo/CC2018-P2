@@ -279,8 +279,10 @@ fn cast_ray_recursive(
     }
 
     let ambient = base_diffuse * 0.05;
+    let emission = base_diffuse * hit.material.emission_strength;
 
-    ambient
+    emission
+        + ambient
         + (base_diffuse * diffuse_light * hit.material.albedo[0])
         + (Vec3A::splat(1.0) * specular_light * hit.material.albedo[1])
         + (reflection_color * hit.material.albedo[2])

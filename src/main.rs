@@ -108,6 +108,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(0),
             normal_id: Some(1),
@@ -120,6 +121,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 8.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(3),
             normal_id: Some(4),
@@ -132,6 +134,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(30),
             normal_id: Some(31),
@@ -145,6 +148,7 @@ fn main() {
         albedo: [1.0, 0.0, 0.0, 0.0],
         specular_exponent: 1.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(6),
             normal_id: Some(7),
@@ -154,9 +158,10 @@ fn main() {
 
     let glowstone = Material {
         diffuse_color: Vec3A::splat(1.0),
-        albedo: [1.5, 0.0, 0.0, 0.0],
+        albedo: [1.0, 0.0, 0.0, 0.0],
         specular_exponent: 1.0,
         refractive_index: 1.0,
+        emission_strength: 1.5,
         textures: MaterialTextureIds {
             diffuse_id: Some(9),
             normal_id: Some(10),
@@ -169,6 +174,7 @@ fn main() {
         albedo: [0.35, 0.55, 0.15, 0.0],
         specular_exponent: 90.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(12),
             normal_id: Some(13),
@@ -181,6 +187,7 @@ fn main() {
         albedo: [0.35, 0.55, 0.15, 0.0],
         specular_exponent: 90.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(15),
             normal_id: Some(16),
@@ -193,6 +200,7 @@ fn main() {
         albedo: [0.35, 0.55, 0.15, 0.0],
         specular_exponent: 90.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(18),
             normal_id: Some(19),
@@ -205,6 +213,7 @@ fn main() {
         albedo: [0.0, 0.5, 0.1, 0.8],
         specular_exponent: 125.0,
         refractive_index: 1.52,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(21),
             normal_id: Some(22),
@@ -217,6 +226,7 @@ fn main() {
         albedo: [0.35, 0.55, 0.15, 0.0],
         specular_exponent: 90.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(24),
             normal_id: Some(25),
@@ -229,6 +239,7 @@ fn main() {
         albedo: [0.0, 10.0, 0.95, 0.0],
         specular_exponent: 1425.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(27),
             normal_id: Some(28),
@@ -241,6 +252,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(30),
             normal_id: Some(31),
@@ -253,6 +265,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(33),
             normal_id: Some(34),
@@ -265,6 +278,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 1.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(36),
             normal_id: Some(37),
@@ -277,6 +291,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(39),
             normal_id: Some(40),
@@ -289,6 +304,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(42),
             normal_id: Some(43),
@@ -301,6 +317,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(45),
             normal_id: Some(46),
@@ -313,6 +330,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
+        emission_strength: 0.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(48),
             normal_id: Some(49),

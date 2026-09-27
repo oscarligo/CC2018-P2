@@ -28,6 +28,7 @@ pub struct Material {
     pub albedo: [f32; 4],       // Albedo factors for diffuse, specular, reflection, and refraction
     pub specular_exponent: f32, // Also known as "shininess", controls the size of specular highlights
     pub refractive_index: f32,  // Index of refraction for transparent materials
+    pub emission_strength: f32, // Light emitted by the material, independent of scene lights
     pub textures: MaterialTextureIds, // IDs of the textures used by this material
 }
 
@@ -49,6 +50,7 @@ impl Material {
             albedo: [0.0; 4],
             specular_exponent: 0.0,
             refractive_index: 1.0,
+            emission_strength: 0.0,
             textures: MaterialTextureIds::empty(),
         }
     }
