@@ -8,20 +8,21 @@ impl HousePrefab {
 
         const W: usize = 10;
         const D: usize = 10;
-        const WOOD: u8 = 4; // Walls
-        const ROOF: u8 = 5; // Roof
-        const GLASS: u8 = 6; // Windows
-        const EXT_FLOOR: u8 = 7; // Exterior floor
-        const INT_FLOOR: u8 = 8; // Interior floor
-        const INT_DETAIL: u8 = 9; // Interior details 
-        const PILLAR: u8 = 10;  // Pillars for the porch
+        const WOOD: u8 = 4;       
+        const ROOF: u8 = 5;       
+        const GLASS: u8 = 6;      
+        const EXT_FLOOR: u8 = 7;  
+        const INT_FLOOR: u8 = 8;  
+        const INT_DETAIL: u8 = 9; 
+        const PILLAR: u8 = 10;    
+        const LIGHT: u8 = 13;     
 
         let mut voxels = BTreeMap::new();
         let mut put = |x: usize, y: usize, z: usize, id: u8| {
             voxels.insert((x, y, z), id);
         };
 
-        // Interior floor
+        // Interior floors
         for x in 1..=8 {
             for z in 2..=8 {
                 put(x, 0, z, INT_FLOOR);
@@ -52,7 +53,7 @@ impl HousePrefab {
             }
         }
 
-        // Roof
+        // roof
         for x in 0..W {
             let roof_y = 8 + x.min(W - 1 - x) / 2;
             for z in 1..D {
@@ -66,7 +67,7 @@ impl HousePrefab {
             }
         }
 
-        // Porch and pillars
+        // exterior floors and pillars
         for x in 2..=7 {
             for z in 0..=1 {
                 put(x, 0, z, EXT_FLOOR);
@@ -80,7 +81,7 @@ impl HousePrefab {
             put(x, 1, 1, PILLAR);
         }
 
-        // Interior stairs
+        // stairs
         for step in 0..4 {
             for x in 6..=7 {
                 for y in 1..=(step + 1) {
@@ -89,7 +90,7 @@ impl HousePrefab {
             }
         }
 
-        // Interior details
+        // interior details
         for z in 3..=6 {
             put(5, 5, z, INT_DETAIL);
         }
@@ -102,6 +103,14 @@ impl HousePrefab {
                 put(x, 5, z, INT_DETAIL);
             }
         }
+
+        // lights
+        put(1, 3, 1, LIGHT);
+        put(8, 3, 1, LIGHT);
+        put(1, 3, 9, LIGHT);
+        put(8, 3, 9, LIGHT);
+        put(4, 3, 5, LIGHT);
+        put(4, 9, 5, LIGHT);
 
         let blocks = voxels
             .into_iter()

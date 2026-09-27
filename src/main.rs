@@ -278,7 +278,7 @@ fn main() {
         albedo: [0.95, 0.05, 0.0, 0.0],
         specular_exponent: 6.0,
         refractive_index: 1.0,
-        emission_strength: 1.0,
+        emission_strength: 2.0,
         textures: MaterialTextureIds {
             diffuse_id: Some(36),
             normal_id: Some(37),
@@ -348,7 +348,7 @@ fn main() {
     ];
     
     let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
-    let cubes = generator.generate(stone,ice,brick, wood, gold_block, white_glass, cobblestone, q_brick, copper, log, log, moss);
+    let cubes = generator.generate(stone,ice,brick, wood, gold_block, white_glass, cobblestone, q_brick, copper, log, log, moss, lantern);
 
     let mut scene = Bvh::new(cubes);
     let event_handler = EventHandler::default();
@@ -360,7 +360,7 @@ fn main() {
 
         if dx != 0 || dz != 0 {
             generator.shift(dx, dz);
-            let new_cubes = generator.generate( stone, ice, brick, wood, gold_block, white_glass, cobblestone,q_brick, copper, log, log, moss);
+            let new_cubes = generator.generate( stone, ice, brick, wood, gold_block, white_glass, cobblestone,q_brick, copper, log, log, moss, lantern);
             scene = Bvh::new(new_cubes);
         }
 
