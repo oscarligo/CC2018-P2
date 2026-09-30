@@ -1,4 +1,4 @@
-use glam::Vec3A;
+use crate::vector::Vec3A;
 use crate::cube::Cube;
 use crate::material::Material;
 use crate::world_gen::house::HousePrefab;

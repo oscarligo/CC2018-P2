@@ -1,7 +1,7 @@
 use crate::caster::{BIAS, Intersection, Ray, RayIntersect};
 use crate::cube::Cube;
 use crate::material::Light;
-use glam::Vec3A;
+use crate::vector::Vec3A;
 
 pub struct Bvh {
     objects: Vec<Cube>,

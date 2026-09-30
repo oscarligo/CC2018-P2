@@ -5,7 +5,7 @@ use crate::framebuffer::Framebuffer;
 use crate::material::Light;
 use crate::textures::background::BackgroundTexture;
 use crate::textures::texture::Texture;
-use glam::Vec3A;
+use crate::vector::Vec3A;
 use raylib::prelude::*;
 
 /*

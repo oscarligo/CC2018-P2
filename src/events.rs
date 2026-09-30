@@ -1,6 +1,6 @@
 use crate::camera::Camera;
 use crate::render::RenderMode;
-use glam::Vec3A;
+use crate::vector::Vec3A;
 use raylib::prelude::*;
 
 pub struct EventHandler {

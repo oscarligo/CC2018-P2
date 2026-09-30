@@ -1,4 +1,4 @@
-use glam::Vec3A;
+use crate::vector::Vec3A;
 /*
     This struct holds the IDs of the textures used by a material.
     Each ID corresponds to a specific type of texture (diffuse, normal, specular).

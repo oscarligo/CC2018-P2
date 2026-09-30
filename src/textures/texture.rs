@@ -1,4 +1,4 @@
-use glam::Vec3A;
+use crate::vector::Vec3A;
 /*
     This class represents a texture loaded from an image file (PNG/JPG) 
     and provides functionality to sample colors based on UV coordinates. 

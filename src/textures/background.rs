@@ -1,4 +1,4 @@
-use glam::Vec3A;
+use crate::vector::Vec3A;
 use std::f32::consts::PI;
 /*
 This module provides functionality for loading and sampling background textures,

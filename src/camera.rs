@@ -1,4 +1,4 @@
-use glam::{Quat, Vec3, Vec3A};
+use crate::vector::Vec3A;
 
 pub struct Camera {
     pub eye: Vec3A,
@@ -41,8 +41,7 @@ impl Camera {
 
     pub fn orbit(&mut self, yaw: f32, pitch: f32) {
         let mut offset = self.eye - self.center;
-        let q_yaw = Quat::from_axis_angle(Vec3::Y, yaw);
-        offset = q_yaw * offset;
+        offset = offset.rotate_around(Vec3A::Y, yaw);
 
         let current_dir = offset.normalize();
         let up_dot = current_dir.dot(Vec3A::Y);
@@ -52,8 +51,7 @@ impl Camera {
         } else {
             pitch
         };
-        let q_pitch = Quat::from_axis_angle(Vec3::from(self.right), safe_pitch);
-        offset = q_pitch * offset;
+        offset = offset.rotate_around(self.right, safe_pitch);
 
         self.eye = self.center + offset;
         self.update_basis_vectors();

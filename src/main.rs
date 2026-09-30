@@ -8,12 +8,13 @@ mod material;
 mod render;
 mod world_gen;
 mod textures;
+mod vector;
 
 use bvh::Bvh;
 use camera::Camera;
 use events::EventHandler;
 use framebuffer::Framebuffer;
-use glam::Vec3A;
+use vector::Vec3A;
 use material::{Light, Material, MaterialTextureIds};
 use raylib::prelude::*;
 use render::{render, RenderMode};

@@ -1,6 +1,6 @@
 use crate::caster::{Intersection, Ray, RayIntersect};
 use crate::material::Material;
-use glam::Vec3A;
+use crate::vector::Vec3A;
 
 #[derive(Clone, Copy)]
 pub struct Cube {

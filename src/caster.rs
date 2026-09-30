@@ -1,4 +1,4 @@
-use glam::Vec3A;
+use crate::vector::Vec3A;
 use crate::bvh::Bvh;
 use crate::material::*;
 use crate::render::RenderMode;
