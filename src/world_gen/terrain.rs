@@ -229,7 +229,7 @@ impl WorldGenerator {
                     && wz >= HOUSE_ORIGIN_Z - 1 && wz <= HOUSE_ORIGIN_Z + 10;
 
                 let in_front_corridor = wx >= HOUSE_ORIGIN_X - 2 && wx <= HOUSE_ORIGIN_X + 11
-                    && wz >= HOUSE_ORIGIN_Z - 9 && wz < HOUSE_ORIGIN_Z;
+                    && wz > HOUSE_ORIGIN_Z + 10 && wz <= HOUSE_ORIGIN_Z + 10 + 15;
 
                 let dist_to_spire_sq = (wx as f32 - INITIAL_SPIRE_X).powi(2) + (wz as f32 - INITIAL_SPIRE_Z).powi(2);
                 let on_spire_area = dist_to_spire_sq < 18.0;
@@ -252,7 +252,6 @@ impl WorldGenerator {
                         }
                         found_y
                     } else {
-                        // Cálculo procedural para árboles cuyo tronco cayó en el margen exterior
                         let world_x = wx as f32;
                         let world_z = wz as f32;
 
