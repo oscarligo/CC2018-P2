@@ -40,11 +40,8 @@ pub const INITIAL_POND_X: f32 = 5.0;
 pub const INITIAL_POND_Z: f32 = 22.0;
 pub const INITIAL_POND_RADIUS: f32 = 4.5;
 
-pub const TREE_STEP_GRID: i32 = 5;       
-pub const TREE_CHANCE_PERCENT: u32 = 35; 
-
-pub const BIG_TREE_X: i32 = HOUSE_ORIGIN_X + 5;
-pub const BIG_TREE_Z: i32 = HOUSE_ORIGIN_Z + 12;
+pub const TREE_STEP_GRID: i32 = 5;  
+pub const TREE_CHANCE_PERCENT: u32 = 30; 
 
 pub const EDGE_SINK_LAYER_0: f32 = -1.2;
 pub const EDGE_SINK_LAYER_1: f32 = -0.8;
@@ -208,12 +205,11 @@ impl WorldGenerator {
             self.offset_z,
         );
 
-
-        let margin = 2i32;
-        let min_wx = self.offset_x + margin;
-        let max_wx = self.offset_x + self.size_x as i32 - margin;
-        let min_wz = self.offset_z + margin;
-        let max_wz = self.offset_z + self.size_z as i32 - margin;
+        let tree_margin = 3i32;
+        let min_wx = self.offset_x - tree_margin;
+        let max_wx = self.offset_x + self.size_x as i32 + tree_margin;
+        let min_wz = self.offset_z - tree_margin;
+        let max_wz = self.offset_z + self.size_z as i32 + tree_margin;
 
         let start_wx = min_wx + (TREE_STEP_GRID - (min_wx.rem_euclid(TREE_STEP_GRID))).rem_euclid(TREE_STEP_GRID);
         let start_wz = min_wz + (TREE_STEP_GRID - (min_wz.rem_euclid(TREE_STEP_GRID))).rem_euclid(TREE_STEP_GRID);
@@ -222,8 +218,8 @@ impl WorldGenerator {
         while wx <= max_wx {
             let mut wz = start_wz;
             while wz <= max_wz {
-                let local_x = (wx - self.offset_x) as usize;
-                let local_z = (wz - self.offset_z) as usize;
+                let local_x = wx - self.offset_x;
+                let local_z = wz - self.offset_z;
 
                 let seed = (((wx as u32).wrapping_mul(73856093)) ^ ((wz as u32).wrapping_mul(19349663)))
                     .wrapping_mul(83492791);
@@ -235,26 +231,59 @@ impl WorldGenerator {
                 let in_front_corridor = wx >= HOUSE_ORIGIN_X - 2 && wx <= HOUSE_ORIGIN_X + 11
                     && wz >= HOUSE_ORIGIN_Z - 9 && wz < HOUSE_ORIGIN_Z;
 
-                let near_big_tree = (wx - BIG_TREE_X).abs() <= 3 && (wz - BIG_TREE_Z).abs() <= 3;
-
                 let dist_to_spire_sq = (wx as f32 - INITIAL_SPIRE_X).powi(2) + (wz as f32 - INITIAL_SPIRE_Z).powi(2);
                 let on_spire_area = dist_to_spire_sq < 18.0;
 
-                let blocked = in_house_footprint || in_front_corridor || near_big_tree || on_spire_area;
+                let blocked = in_house_footprint || in_front_corridor || on_spire_area;
 
                 if roll < TREE_CHANCE_PERCENT && !blocked {
-                    let mut ground_y = None;
-                    for y in (0..self.size_y).rev() {
-                        let block = grid[idx(local_x, y, local_z)];
-                        if block == 1 {
-                            if y <= 2 {
-                                ground_y = Some(y);
+                    let ground_y = if local_x >= 0 && local_x < self.size_x as i32 && local_z >= 0 && local_z < self.size_z as i32 {
+                        let mut found_y = None;
+                        for y in (0..self.size_y).rev() {
+                            let block = grid[idx(local_x as usize, y, local_z as usize)];
+                            if block == 1 {
+                                if y <= 2 {
+                                    found_y = Some(y);
+                                }
+                                break;
+                            } else if block != 0 {
+                                break;
                             }
-                            break;
-                        } else if block != 0 {
-                            break;
                         }
-                    }
+                        found_y
+                    } else {
+                        // Cálculo procedural para árboles cuyo tronco cayó en el margen exterior
+                        let world_x = wx as f32;
+                        let world_z = wz as f32;
+
+                        let plateau_wave = ((world_x * PLATEAU_FREQ).sin() + (world_z * PLATEAU_FREQ).cos()) * 0.5;
+                        let plateau_extra = if plateau_wave > PLATEAU_THRESHOLD { PLATEAU_HEIGHT_BONUS } else { 0 };
+
+                        let s_rare = (world_x * SPIRE_FREQ_COARSE + (world_z * SPIRE_FREQ_FINE).cos() * 2.0).sin() * 0.5 + 0.5;
+                        let c_rare = (world_z * SPIRE_FREQ_COARSE + (world_x * SPIRE_FREQ_FINE).sin() * 2.0).cos() * 0.5 + 0.5;
+                        let spire_factor = (s_rare * c_rare).powi(SPIRE_EXPONENT);
+                        let is_init_spire = ((world_x - INITIAL_SPIRE_X).powi(2) + (world_z - INITIAL_SPIRE_Z).powi(2)) < 14.0;
+                        let is_rare_spire = is_init_spire || spire_factor > SPIRE_DETECTION_THRESHOLD;
+
+                        let local_px = (world_x.rem_euclid(POND_CELL_SIZE)) - (POND_CELL_SIZE * 0.5);
+                        let local_pz = (world_z.rem_euclid(POND_CELL_SIZE)) - (POND_CELL_SIZE * 0.5);
+                        let pond_dist_sq = local_px * local_px + local_pz * local_pz;
+                        let angle = local_pz.atan2(local_px);
+                        let pond_radius = POND_BASE_RADIUS + POND_RADIUS_VARIATION * (angle * 3.0).sin();
+
+                        let dx_init_pond = world_x - INITIAL_POND_X;
+                        let dz_init_pond = world_z - INITIAL_POND_Z;
+                        let angle_init = dz_init_pond.atan2(dx_init_pond);
+                        let r_init_mod = INITIAL_POND_RADIUS + 0.8 * (angle_init * 2.0).sin();
+                        let in_pond = (dx_init_pond * dx_init_pond + dz_init_pond * dz_init_pond) < (r_init_mod * r_init_mod)
+                            || pond_dist_sq < (pond_radius * pond_radius);
+
+                        if !in_pond && !is_rare_spire && plateau_extra <= 2 {
+                            Some(plateau_extra)
+                        } else {
+                            None
+                        }
+                    };
 
                     if let Some(gy) = ground_y {
                         if gy + 7 < self.size_y {
