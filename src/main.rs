@@ -38,6 +38,16 @@ fn held_block(character_y: f32, character_angle: f32, walk_angle: f32, material:
     Cube::new(center, 0.32, material)
 }
 
+fn load_toast_texture(window: &mut RaylibHandle, thread: &RaylibThread, path: &str) -> Texture2D {
+    let bytes =
+        std::fs::read(path).unwrap_or_else(|error| panic!("No se pudo leer {path}: {error}"));
+    let image = Image::load_image_from_mem(".png", &bytes)
+        .unwrap_or_else(|error| panic!("No se pudo decodificar {path}: {error}"));
+    window
+        .load_texture_from_image(thread, &image)
+        .unwrap_or_else(|error| panic!("No se pudo cargar {path} en la GPU: {error}"))
+}
+
 fn update_jump(
     character_y: &mut f32,
     velocity: &mut f32,
@@ -76,6 +86,8 @@ fn main() {
     const WALK_CYCLE_SPEED: f32 = 12.0;
     const LIMB_SWING: f32 = 1.5;
     const STEP_INTERVAL: f32 = 0.32;
+    const TOAST_SLIDE_DURATION: f32 = 0.25;
+    const TOAST_VISIBLE_DURATION: f32 = 5.0;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -115,6 +127,13 @@ fn main() {
     ];
     let place_sound = load_sound("assets/sounds/place.ogg.mp3");
     let remove_sound = load_sound("assets/sounds/remove.ogg.mp3");
+    let toast_in_sound = load_sound("assets/sounds/in.mp3");
+    let toast_out_sound = load_sound("assets/sounds/out.mp3");
+    let toast_textures = [
+        load_toast_texture(&mut rl, &thread, "assets/ui/danny.png"),
+        load_toast_texture(&mut rl, &thread, "assets/ui/aria_math.png"),
+        load_toast_texture(&mut rl, &thread, "assets/ui/living_mice.png"),
+    ];
 
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
 
@@ -562,6 +581,7 @@ fn main() {
     let mut walk_angle = 0.0_f32;
     let mut step_timer = STEP_INTERVAL;
     let mut next_step = 0;
+    let mut active_toast: Option<(usize, f32)> = None;
 
     while !rl.window_should_close() {
         let (
@@ -574,7 +594,27 @@ fn main() {
             place_block,
             remove_block,
         ) = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
-        if music_selection != 0 {
+        let frame_time = rl.get_frame_time();
+        let delta_time = frame_time.min(0.05);
+        let toast_out_at = TOAST_SLIDE_DURATION + TOAST_VISIBLE_DURATION;
+        let toast_end = toast_out_at + TOAST_SLIDE_DURATION;
+        let (play_toast_out, hide_toast) = if let Some((_, elapsed)) = &mut active_toast {
+            let previous = *elapsed;
+            *elapsed += frame_time;
+            (
+                previous < toast_out_at && *elapsed >= toast_out_at,
+                *elapsed >= toast_end,
+            )
+        } else {
+            (false, false)
+        };
+        if play_toast_out {
+            toast_out_sound.play();
+        }
+        if hide_toast {
+            active_toast = None;
+        }
+        if music_selection != 0 && active_toast.is_none() {
             ambient_music[selected_music].stop_stream();
             if music_selection < 0 {
                 selected_music = (selected_music + ambient_music.len() - 1) % ambient_music.len();
@@ -582,6 +622,8 @@ fn main() {
                 selected_music = (selected_music + 1) % ambient_music.len();
             }
             ambient_music[selected_music].play_stream();
+            active_toast = Some((selected_music, 0.0));
+            toast_in_sound.play();
         }
         ambient_music[selected_music].update_stream();
         let block_selection_changed = block_selection != 0;
@@ -590,7 +632,6 @@ fn main() {
         } else if block_selection > 0 {
             selected_block = (selected_block + 1) % placeable_blocks.len();
         }
-        let delta_time = rl.get_frame_time().min(0.05);
         let movement_requested = dx != 0.0 || dz != 0.0;
         let mut character_rotated = false;
         let mut world_moved = false;
@@ -822,6 +863,17 @@ fn main() {
             needs_full_render = is_moving || world_moved || character_moved || character_animated;
         }
 
-        framebuffer.swap_buffers(&mut rl, &thread, rendered);
+        let toast = active_toast.as_ref().map(|(music, elapsed)| {
+            let progress = if *elapsed < TOAST_SLIDE_DURATION {
+                *elapsed / TOAST_SLIDE_DURATION
+            } else if *elapsed < TOAST_SLIDE_DURATION + TOAST_VISIBLE_DURATION {
+                1.0
+            } else {
+                1.0 - (*elapsed - TOAST_SLIDE_DURATION - TOAST_VISIBLE_DURATION)
+                    / TOAST_SLIDE_DURATION
+            };
+            (&toast_textures[*music], progress)
+        });
+        framebuffer.swap_buffers(&mut rl, &thread, rendered, toast);
     }
 }

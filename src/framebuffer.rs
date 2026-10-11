@@ -51,9 +51,9 @@ impl Framebuffer {
         window: &mut RaylibHandle,
         raylib_thread: &RaylibThread,
         pixels_changed: bool,
+        toast: Option<(&Texture2D, f32)>,
     ) {
         if pixels_changed {
-            // `raylib::ffi::Color` garantiza 4 bytes contiguos en memoria (RGBA8888).
             let total_bytes = self.pixels.len() * std::mem::size_of::<Color>();
             let raw_pixel_slice = unsafe {
                 std::slice::from_raw_parts(self.pixels.as_ptr() as *const u8, total_bytes)
@@ -64,6 +64,21 @@ impl Framebuffer {
         let mut renderer = window.begin_drawing(raylib_thread);
         renderer.clear_background(Color::BLACK);
         renderer.draw_texture(&self.texture, 0, 0, Color::WHITE);
+        if let Some((toast, progress)) = toast {
+            let target_width = (self.width as f32 * 0.36).min(360.0);
+            let scale = target_width / toast.width as f32;
+            let progress = progress.clamp(0.0, 1.0);
+            let progress = progress * progress * (3.0 - 2.0 * progress);
+            let hidden_x = self.width as f32;
+            let visible_x = self.width as f32 - target_width - 24.0;
+            renderer.draw_texture_ex(
+                toast,
+                Vector2::new(hidden_x + (visible_x - hidden_x) * progress, 24.0),
+                0.0,
+                scale,
+                Color::WHITE,
+            );
+        }
     }
 
     // Parallel rendering function that divides the framebuffer into chunks for each thread.
