@@ -52,6 +52,10 @@ impl Framebuffer {
         raylib_thread: &RaylibThread,
         pixels_changed: bool,
         toast: Option<(&Texture2D, f32)>,
+        hotbar: &Texture2D,
+        hotbar_selector: &Texture2D,
+        block_icons: &[Texture2D],
+        selected_block: usize,
     ) {
         if pixels_changed {
             let total_bytes = self.pixels.len() * std::mem::size_of::<Color>();
@@ -79,6 +83,33 @@ impl Framebuffer {
                 Color::WHITE,
             );
         }
+
+        let hotbar_x = (self.width as f32 - hotbar.width as f32) * 0.5;
+        let hotbar_y = self.height as f32 - hotbar.height as f32 - 20.0;
+        renderer.draw_texture_v(hotbar, Vector2::new(hotbar_x, hotbar_y), Color::WHITE);
+        for (slot, icon) in block_icons.iter().enumerate() {
+            renderer.draw_texture_pro(
+                icon,
+                Rectangle::new(0.0, 0.0, icon.width as f32, icon.height as f32),
+                Rectangle::new(
+                    hotbar_x + 6.0 + slot as f32 * 40.0,
+                    hotbar_y + 6.0,
+                    32.0,
+                    32.0,
+                ),
+                Vector2::zero(),
+                0.0,
+                Color::WHITE,
+            );
+        }
+        renderer.draw_texture_v(
+            hotbar_selector,
+            Vector2::new(
+                hotbar_x - 2.0 + selected_block as f32 * 40.0,
+                hotbar_y - 2.0,
+            ),
+            Color::WHITE,
+        );
     }
 
     // Parallel rendering function that divides the framebuffer into chunks for each thread.

@@ -38,7 +38,7 @@ fn held_block(character_y: f32, character_angle: f32, walk_angle: f32, material:
     Cube::new(center, 0.32, material)
 }
 
-fn load_toast_texture(window: &mut RaylibHandle, thread: &RaylibThread, path: &str) -> Texture2D {
+fn load_ui_texture(window: &mut RaylibHandle, thread: &RaylibThread, path: &str) -> Texture2D {
     let bytes =
         std::fs::read(path).unwrap_or_else(|error| panic!("No se pudo leer {path}: {error}"));
     let image = Image::load_image_from_mem(".png", &bytes)
@@ -88,6 +88,7 @@ fn main() {
     const STEP_INTERVAL: f32 = 0.32;
     const TOAST_SLIDE_DURATION: f32 = 0.25;
     const TOAST_VISIBLE_DURATION: f32 = 5.0;
+    const HOTBAR_SLOTS: usize = 9;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -130,9 +131,17 @@ fn main() {
     let toast_in_sound = load_sound("assets/sounds/in.mp3");
     let toast_out_sound = load_sound("assets/sounds/out.mp3");
     let toast_textures = [
-        load_toast_texture(&mut rl, &thread, "assets/ui/danny.png"),
-        load_toast_texture(&mut rl, &thread, "assets/ui/aria_math.png"),
-        load_toast_texture(&mut rl, &thread, "assets/ui/living_mice.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/danny.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/aria_math.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/living_mice.png"),
+    ];
+    let hotbar = load_ui_texture(&mut rl, &thread, "assets/ui/hotbar.png");
+    let hotbar_selector = load_ui_texture(&mut rl, &thread, "assets/ui/hotbar_selector.png");
+    let block_icons = [
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/brick.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/wood.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/cobblestone.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/gold.png"),
     ];
 
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
@@ -628,9 +637,9 @@ fn main() {
         ambient_music[selected_music].update_stream();
         let block_selection_changed = block_selection != 0;
         if block_selection < 0 {
-            selected_block = (selected_block + placeable_blocks.len() - 1) % placeable_blocks.len();
+            selected_block = (selected_block + HOTBAR_SLOTS - 1) % HOTBAR_SLOTS;
         } else if block_selection > 0 {
-            selected_block = (selected_block + 1) % placeable_blocks.len();
+            selected_block = (selected_block + 1) % HOTBAR_SLOTS;
         }
         let movement_requested = dx != 0.0 || dz != 0.0;
         let mut character_rotated = false;
@@ -704,7 +713,11 @@ fn main() {
         }
 
         let mut block_placed = false;
-        if place_block && vertical_velocity == 0.0 && (character_y - ground_y).abs() <= 0.001 {
+        if place_block
+            && selected_block < placeable_blocks.len()
+            && vertical_velocity == 0.0
+            && (character_y - ground_y).abs() <= 0.001
+        {
             let block_dx = movement_x.round() as i32;
             let block_dz = movement_z.round() as i32;
             if let Some(new_ground) = generator.place_block_below(
@@ -817,12 +830,14 @@ fn main() {
                 })
                 .collect();
             let mut scene_cubes = cubes.clone();
-            scene_cubes.push(held_block(
-                character_y,
-                character_angle,
-                walk_angle,
-                placeable_blocks[selected_block].1,
-            ));
+            if let Some((_, material)) = placeable_blocks.get(selected_block) {
+                scene_cubes.push(held_block(
+                    character_y,
+                    character_angle,
+                    walk_angle,
+                    *material,
+                ));
+            }
             scene = Bvh::new(scene_cubes, character_at_ground);
             lights.clear();
             lights.push(sun);
@@ -874,6 +889,15 @@ fn main() {
             };
             (&toast_textures[*music], progress)
         });
-        framebuffer.swap_buffers(&mut rl, &thread, rendered, toast);
+        framebuffer.swap_buffers(
+            &mut rl,
+            &thread,
+            rendered,
+            toast,
+            &hotbar,
+            &hotbar_selector,
+            &block_icons,
+            selected_block,
+        );
     }
 }
