@@ -128,6 +128,22 @@ impl WorldGenerator {
         Some(y as f32 * self.block_size + self.block_size * 0.5)
     }
 
+    pub fn remove_placed_block_below(&mut self, dx: i32, dz: i32, feet_y: f32) -> bool {
+        let world_x = self.size_x as i32 / 2 + self.offset_x + dx;
+        let world_z = self.size_z as i32 / 2 + self.offset_z + dz;
+        let y = (feet_y / self.block_size - 0.5).round() as i32;
+        let Some(placed_index) = self
+            .placed_blocks
+            .iter()
+            .position(|placed| placed.0 == world_x && placed.1 as i32 == y && placed.2 == world_z)
+        else {
+            return false;
+        };
+
+        self.placed_blocks.swap_remove(placed_index);
+        true
+    }
+
     #[allow(clippy::too_many_arguments)]
     pub fn generate(
         &self,

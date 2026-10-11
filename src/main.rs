@@ -527,8 +527,15 @@ fn main() {
     let mut walk_angle = 0.0_f32;
 
     while !rl.window_should_close() {
-        let (changed, is_moving, (dx, dz), jump_pressed, block_selection, place_block) =
-            event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+        let (
+            changed,
+            is_moving,
+            (dx, dz),
+            jump_pressed,
+            block_selection,
+            place_block,
+            remove_block,
+        ) = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
         let block_selection_changed = block_selection != 0;
         if block_selection < 0 {
             selected_block = (selected_block + placeable_blocks.len() - 1) % placeable_blocks.len();
@@ -635,6 +642,34 @@ fn main() {
             }
         }
 
+        let mut block_removed = false;
+        if remove_block
+            && !block_placed
+            && vertical_velocity == 0.0
+            && (character_y - ground_y).abs() <= 0.001
+        {
+            let block_dx = movement_x.round() as i32;
+            let block_dz = movement_z.round() as i32;
+            if generator.remove_placed_block_below(block_dx, block_dz, character_y) {
+                generator.shift(block_dx, block_dz);
+                movement_x -= block_dx as f32;
+                movement_z -= block_dz as f32;
+                ground_y = generator
+                    .movement_ground(0, 0, character_y, CHARACTER_HEIGHT)
+                    .unwrap_or(0.0);
+                cubes = generate_world(&generator);
+                let terrain_offset = Vec3A::new(
+                    -movement_x * generator.block_size,
+                    0.0,
+                    -movement_z * generator.block_size,
+                );
+                for cube in &mut cubes {
+                    cube.translate(terrain_offset);
+                }
+                block_removed = true;
+            }
+        }
+
         let previous_walk_angle = walk_angle;
         if world_moved {
             walk_phase += delta_time * WALK_CYCLE_SPEED;
@@ -668,6 +703,7 @@ fn main() {
             || character_animated
             || block_selection_changed
             || block_placed
+            || block_removed
         {
             let character_at_ground = character
                 .iter()
@@ -698,6 +734,7 @@ fn main() {
             || character_animated
             || block_selection_changed
             || block_placed
+            || block_removed
             || needs_full_render;
 
         if rendered {

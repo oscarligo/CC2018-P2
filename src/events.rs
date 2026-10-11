@@ -14,7 +14,7 @@ impl EventHandler {
         rl: &RaylibHandle,
         camera: &mut Camera,
         mode: &mut RenderMode,
-    ) -> (bool, bool, (f32, f32), bool, i32, bool) {
+    ) -> (bool, bool, (f32, f32), bool, i32, bool, bool) {
         let mut changed = false;
         let mut camera_moving = false;
 
@@ -56,6 +56,7 @@ impl EventHandler {
         let block_selection = i32::from(rl.is_key_pressed(KeyboardKey::KEY_RIGHT))
             - i32::from(rl.is_key_pressed(KeyboardKey::KEY_LEFT));
         let place_block = rl.is_key_pressed(KeyboardKey::KEY_P);
+        let remove_block = rl.is_key_pressed(KeyboardKey::KEY_O);
 
         // Camera movement
         let lmb_down = rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT);
@@ -104,6 +105,7 @@ impl EventHandler {
             jump_pressed,
             block_selection,
             place_block,
+            remove_block,
         )
     }
 }
