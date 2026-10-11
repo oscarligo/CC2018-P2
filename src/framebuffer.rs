@@ -56,6 +56,10 @@ impl Framebuffer {
         hotbar_selector: &Texture2D,
         block_icons: &[Texture2D],
         selected_block: usize,
+        effect: &Texture2D,
+        effect_selector: &Texture2D,
+        hearts: &[Texture2D],
+        selected_effect: usize,
     ) {
         if pixels_changed {
             let total_bytes = self.pixels.len() * std::mem::size_of::<Color>();
@@ -110,6 +114,44 @@ impl Framebuffer {
             ),
             Color::WHITE,
         );
+
+        let effect_scale = 2.0;
+        let effect_size = effect.width as f32 * effect_scale;
+        let effect_step = effect_size + 4.0;
+        for slot in 0..hearts.len() {
+            let x = 20.0 + slot as f32 * effect_step;
+            renderer.draw_texture_ex(
+                effect,
+                Vector2::new(x, 20.0),
+                0.0,
+                effect_scale,
+                Color::WHITE,
+            );
+        }
+        renderer.draw_texture_ex(
+            effect_selector,
+            Vector2::new(20.0 + selected_effect as f32 * effect_step, 20.0),
+            0.0,
+            effect_scale,
+            Color::WHITE,
+        );
+        for (slot, heart) in hearts.iter().enumerate() {
+            let x = 20.0 + slot as f32 * effect_step;
+            let heart_size = 22.0;
+            renderer.draw_texture_pro(
+                heart,
+                Rectangle::new(0.0, 0.0, heart.width as f32, heart.height as f32),
+                Rectangle::new(
+                    x + (effect_size - heart_size) * 0.5,
+                    20.0 + (effect_size - heart_size) * 0.5,
+                    heart_size,
+                    heart_size,
+                ),
+                Vector2::zero(),
+                0.0,
+                Color::WHITE,
+            );
+        }
     }
 
     // Parallel rendering function that divides the framebuffer into chunks for each thread.

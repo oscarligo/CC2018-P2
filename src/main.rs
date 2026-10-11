@@ -143,6 +143,14 @@ fn main() {
         load_ui_texture(&mut rl, &thread, "assets/ui/blocks/cobblestone.png"),
         load_ui_texture(&mut rl, &thread, "assets/ui/blocks/gold.png"),
     ];
+    let effect = load_ui_texture(&mut rl, &thread, "assets/ui/effect.png");
+    let effect_selector = load_ui_texture(&mut rl, &thread, "assets/ui/effect_selector.png");
+    let hearts = [
+        load_ui_texture(&mut rl, &thread, "assets/ui/heart_1.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/heart_2.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/heart_3.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/heart_4.png"),
+    ];
 
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
 
@@ -889,6 +897,12 @@ fn main() {
             };
             (&toast_textures[*music], progress)
         });
+        let selected_effect = match render_mode {
+            RenderMode::Flat => 0,
+            RenderMode::Normals => 1,
+            RenderMode::BasicLight => 2,
+            RenderMode::Full => 3,
+        };
         framebuffer.swap_buffers(
             &mut rl,
             &thread,
@@ -898,6 +912,10 @@ fn main() {
             &hotbar_selector,
             &block_icons,
             selected_block,
+            &effect,
+            &effect_selector,
+            &hearts,
+            selected_effect,
         );
     }
 }
