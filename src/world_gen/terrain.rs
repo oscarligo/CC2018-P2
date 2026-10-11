@@ -21,6 +21,7 @@ pub struct WorldGenerator {
     pub block_size: f32,
     pub offset_x: i32,
     pub offset_z: i32,
+    placed_blocks: Vec<(i32, usize, i32, u8)>,
     house: HousePrefab,
     tree: TreePrefab,
 }
@@ -34,6 +35,7 @@ impl WorldGenerator {
             block_size,
             offset_x: 0,
             offset_z: 0,
+            placed_blocks: Vec::new(),
             house: HousePrefab::new(),
             tree: TreePrefab::new(),
         }
@@ -94,8 +96,36 @@ impl WorldGenerator {
     }
 
     pub fn player_collides(&self, feet_y: f32, player_height: f32) -> bool {
-        self.movement_ground(0, 0, feet_y, player_height)
-            .is_none()
+        self.movement_ground(0, 0, feet_y, player_height).is_none()
+    }
+
+    pub fn place_block_below(&mut self, dx: i32, dz: i32, feet_y: f32, block: u8) -> Option<f32> {
+        let x = self.size_x as i32 / 2 + dx;
+        let z = self.size_z as i32 / 2 + dz;
+        let y = (feet_y / self.block_size + 0.5).round() as i32;
+        if x < 0
+            || x >= self.size_x as i32
+            || y < 0
+            || y >= self.size_y as i32
+            || z < 0
+            || z >= self.size_z as i32
+        {
+            return None;
+        }
+
+        let x = x as usize;
+        let y = y as usize;
+        let z = z as usize;
+        let grid = self.build_grid(self.offset_x, self.offset_z);
+        if y + 3 >= self.size_y
+            || (y..=y + 3).any(|space_y| grid[index(x, space_y, z, self.size_x, self.size_z)] != 0)
+        {
+            return None;
+        }
+
+        self.placed_blocks
+            .push((x as i32 + self.offset_x, y, z as i32 + self.offset_z, block));
+        Some(y as f32 * self.block_size + self.block_size * 0.5)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -144,10 +174,7 @@ impl WorldGenerator {
         let mut grid = vec![0; self.size_x * self.size_y * self.size_z];
         for x in 0..self.size_x {
             for z in 0..self.size_z {
-                let shape = terrain_at(
-                    (x as i32 + offset_x) as f32,
-                    (z as i32 + offset_z) as f32,
-                );
+                let shape = terrain_at((x as i32 + offset_x) as f32, (z as i32 + offset_z) as f32);
                 if shape.is_pond {
                     grid[index(x, 0, z, self.size_x, self.size_z)] = 2;
                     continue;
@@ -186,6 +213,18 @@ impl WorldGenerator {
             HOUSE_X,
             HOUSE_Z,
         );
+        for &(world_x, y, world_z, block) in &self.placed_blocks {
+            let x = world_x - offset_x;
+            let z = world_z - offset_z;
+            if x >= 0
+                && x < self.size_x as i32
+                && y < self.size_y
+                && z >= 0
+                && z < self.size_z as i32
+            {
+                grid[index(x as usize, y, z as usize, self.size_x, self.size_z)] = block;
+            }
+        }
         grid
     }
 }

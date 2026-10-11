@@ -6,7 +6,6 @@ use raylib::prelude::*;
 pub struct EventHandler {
     pub mouse_sensitivity: f32,
     pub zoom_speed: f32,
-
 }
 
 impl EventHandler {
@@ -15,7 +14,7 @@ impl EventHandler {
         rl: &RaylibHandle,
         camera: &mut Camera,
         mode: &mut RenderMode,
-    ) -> (bool, bool, (f32, f32), bool) {
+    ) -> (bool, bool, (f32, f32), bool, i32, bool) {
         let mut changed = false;
         let mut camera_moving = false;
 
@@ -54,6 +53,9 @@ impl EventHandler {
             shift_x += 1;
         }
         let jump_pressed = rl.is_key_pressed(KeyboardKey::KEY_SPACE);
+        let block_selection = i32::from(rl.is_key_pressed(KeyboardKey::KEY_RIGHT))
+            - i32::from(rl.is_key_pressed(KeyboardKey::KEY_LEFT));
+        let place_block = rl.is_key_pressed(KeyboardKey::KEY_P);
 
         // Camera movement
         let lmb_down = rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT);
@@ -100,6 +102,8 @@ impl EventHandler {
             camera_moving,
             movement,
             jump_pressed,
+            block_selection,
+            place_block,
         )
     }
 }
@@ -108,7 +112,7 @@ impl Default for EventHandler {
     fn default() -> Self {
         Self {
             mouse_sensitivity: 0.005,
-            zoom_speed: 0.15
+            zoom_speed: 0.15,
         }
     }
 }

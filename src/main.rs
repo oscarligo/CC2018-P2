@@ -13,6 +13,7 @@ mod world_gen;
 
 use bvh::Bvh;
 use camera::Camera;
+use cube::Cube;
 use events::EventHandler;
 use framebuffer::Framebuffer;
 use material::{Light, Material, MaterialTextureIds};
@@ -26,6 +27,16 @@ use world_gen::terrain::WorldGenerator;
 
 const JUMP_SPEED: f32 = 7.5;
 const GRAVITY: f32 = 22.0;
+
+fn held_block(character_y: f32, character_angle: f32, walk_angle: f32, material: Material) -> Cube {
+    let arm_pivot = Vec3A::new(0.0, 1.49, -0.34);
+    let hand = Vec3A::new(0.24, 0.76, -0.34);
+    let animated_hand =
+        (hand - arm_pivot).rotate_around(Vec3A::new(0.0, 0.0, 1.0), walk_angle) + arm_pivot;
+    let center =
+        animated_hand.rotate_around(Vec3A::Y, character_angle) + Vec3A::new(0.0, character_y, 0.0);
+    Cube::new(center, 0.32, material)
+}
 
 fn update_jump(
     character_y: &mut f32,
@@ -473,23 +484,28 @@ fn main() {
     let mut lights = vec![sun];
 
     let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
+    let placeable_blocks = [(3, brick), (4, wood), (7, cobblestone), (5, gold_block)];
+    let mut selected_block = 0;
     let character = load_obj("assets/character.obj", CHARACTER_HEIGHT, character_material)
         .unwrap_or_else(|error| panic!("No se pudo cargar el personaje: {error}"));
-    let mut cubes = generator.generate(
-        stone,
-        ice,
-        brick,
-        wood,
-        gold_block,
-        white_glass,
-        cobblestone,
-        prismarine,
-        copper,
-        log,
-        log,
-        moss,
-        glowstone,
-    );
+    let generate_world = |generator: &WorldGenerator| {
+        generator.generate(
+            stone,
+            ice,
+            brick,
+            wood,
+            gold_block,
+            white_glass,
+            cobblestone,
+            prismarine,
+            copper,
+            log,
+            log,
+            moss,
+            glowstone,
+        )
+    };
+    let mut cubes = generate_world(&generator);
     let mut ground_y = generator.center_ground_height();
     let mut character_y = ground_y;
     let character_at_ground = character
@@ -497,7 +513,9 @@ fn main() {
         .map(|triangle| triangle.translated(Vec3A::new(0.0, character_y, 0.0)))
         .collect();
 
-    let mut scene = Bvh::new(cubes.clone(), character_at_ground);
+    let mut scene_cubes = cubes.clone();
+    scene_cubes.push(held_block(character_y, 0.0, 0.0, placeable_blocks[0].1));
+    let mut scene = Bvh::new(scene_cubes, character_at_ground);
     lights.extend(scene.emissive_lights());
     let event_handler = EventHandler::default();
     let mut needs_full_render = true;
@@ -509,8 +527,14 @@ fn main() {
     let mut walk_angle = 0.0_f32;
 
     while !rl.window_should_close() {
-        let (changed, is_moving, (dx, dz), jump_pressed) =
+        let (changed, is_moving, (dx, dz), jump_pressed, block_selection, place_block) =
             event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+        let block_selection_changed = block_selection != 0;
+        if block_selection < 0 {
+            selected_block = (selected_block + placeable_blocks.len() - 1) % placeable_blocks.len();
+        } else if block_selection > 0 {
+            selected_block = (selected_block + 1) % placeable_blocks.len();
+        }
         let delta_time = rl.get_frame_time().min(0.05);
         let movement_requested = dx != 0.0 || dz != 0.0;
         let mut character_rotated = false;
@@ -561,21 +585,7 @@ fn main() {
                 if shift_x != 0 || shift_z != 0 {
                     generator.shift(shift_x, shift_z);
                     ground_y = shifted_ground.unwrap();
-                    cubes = generator.generate(
-                        stone,
-                        ice,
-                        brick,
-                        wood,
-                        gold_block,
-                        white_glass,
-                        cobblestone,
-                        prismarine,
-                        copper,
-                        log,
-                        log,
-                        moss,
-                        glowstone,
-                    );
+                    cubes = generate_world(&generator);
                 }
 
                 let terrain_offset = if shift_x != 0 || shift_z != 0 {
@@ -594,6 +604,34 @@ fn main() {
                 for cube in &mut cubes {
                     cube.translate(terrain_offset);
                 }
+            }
+        }
+
+        let mut block_placed = false;
+        if place_block && vertical_velocity == 0.0 && (character_y - ground_y).abs() <= 0.001 {
+            let block_dx = movement_x.round() as i32;
+            let block_dz = movement_z.round() as i32;
+            if let Some(new_ground) = generator.place_block_below(
+                block_dx,
+                block_dz,
+                character_y,
+                placeable_blocks[selected_block].0,
+            ) {
+                generator.shift(block_dx, block_dz);
+                movement_x -= block_dx as f32;
+                movement_z -= block_dz as f32;
+                ground_y = new_ground;
+                character_y = new_ground;
+                cubes = generate_world(&generator);
+                let terrain_offset = Vec3A::new(
+                    -movement_x * generator.block_size,
+                    0.0,
+                    -movement_z * generator.block_size,
+                );
+                for cube in &mut cubes {
+                    cube.translate(terrain_offset);
+                }
+                block_placed = true;
             }
         }
 
@@ -624,7 +662,13 @@ fn main() {
             character_moved = true;
         }
 
-        if world_moved || character_moved || character_rotated || character_animated {
+        if world_moved
+            || character_moved
+            || character_rotated
+            || character_animated
+            || block_selection_changed
+            || block_placed
+        {
             let character_at_ground = character
                 .iter()
                 .map(|triangle| {
@@ -634,7 +678,14 @@ fn main() {
                         .translated(Vec3A::new(0.0, character_y, 0.0))
                 })
                 .collect();
-            scene = Bvh::new(cubes.clone(), character_at_ground);
+            let mut scene_cubes = cubes.clone();
+            scene_cubes.push(held_block(
+                character_y,
+                character_angle,
+                walk_angle,
+                placeable_blocks[selected_block].1,
+            ));
+            scene = Bvh::new(scene_cubes, character_at_ground);
             lights.clear();
             lights.push(sun);
             lights.extend(scene.emissive_lights());
@@ -645,6 +696,8 @@ fn main() {
             || character_moved
             || character_rotated
             || character_animated
+            || block_selection_changed
+            || block_placed
             || needs_full_render;
 
         if rendered {
@@ -668,8 +721,7 @@ fn main() {
                 current_pixel_size,
             );
 
-            needs_full_render =
-                is_moving || world_moved || character_moved || character_animated;
+            needs_full_render = is_moving || world_moved || character_moved || character_animated;
         }
 
         framebuffer.swap_buffers(&mut rl, &thread, rendered);
