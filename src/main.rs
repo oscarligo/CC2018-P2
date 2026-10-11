@@ -75,11 +75,46 @@ fn main() {
     const MOVEMENT_SPEED: f32 = 10.0;
     const WALK_CYCLE_SPEED: f32 = 12.0;
     const LIMB_SWING: f32 = 1.5;
+    const STEP_INTERVAL: f32 = 0.32;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
         .title("CPU Ray Tracer")
         .build();
+
+    let audio = RaylibAudio::init_audio_device()
+        .unwrap_or_else(|error| panic!("No se pudo iniciar el audio: {error}"));
+    let load_music = |path: &str| {
+        audio
+            .new_music(path)
+            .unwrap_or_else(|error| panic!("No se pudo cargar {path}: {error}"))
+    };
+    let load_sound = |path: &str| {
+        audio
+            .new_sound(path)
+            .unwrap_or_else(|error| panic!("No se pudo cargar {path}: {error}"))
+    };
+    let mut ambient_music = [
+        load_music("assets/sounds/danny.mp3"),
+        load_music("assets/sounds/aria_math.mp3"),
+        load_music("assets/sounds/living_mice.mp3"),
+    ];
+    for music in &mut ambient_music {
+        music.set_looping(true);
+        music.set_volume(0.35);
+    }
+    let mut selected_music = 2;
+    ambient_music[selected_music].play_stream();
+    let step_sounds = [
+        load_sound("assets/sounds/step_1.ogg.mp3"),
+        load_sound("assets/sounds/step_2.ogg.mp3"),
+        load_sound("assets/sounds/step_3.ogg.mp3"),
+        load_sound("assets/sounds/step_4.ogg.mp3"),
+        load_sound("assets/sounds/step_5.ogg.mp3"),
+        load_sound("assets/sounds/step_6.ogg.mp3"),
+    ];
+    let place_sound = load_sound("assets/sounds/place.ogg.mp3");
+    let remove_sound = load_sound("assets/sounds/remove.ogg.mp3");
 
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
 
@@ -525,6 +560,8 @@ fn main() {
     let mut movement_z = 0.0_f32;
     let mut walk_phase = 0.0_f32;
     let mut walk_angle = 0.0_f32;
+    let mut step_timer = STEP_INTERVAL;
+    let mut next_step = 0;
 
     while !rl.window_should_close() {
         let (
@@ -533,9 +570,20 @@ fn main() {
             (dx, dz),
             jump_pressed,
             block_selection,
+            music_selection,
             place_block,
             remove_block,
         ) = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+        if music_selection != 0 {
+            ambient_music[selected_music].stop_stream();
+            if music_selection < 0 {
+                selected_music = (selected_music + ambient_music.len() - 1) % ambient_music.len();
+            } else {
+                selected_music = (selected_music + 1) % ambient_music.len();
+            }
+            ambient_music[selected_music].play_stream();
+        }
+        ambient_music[selected_music].update_stream();
         let block_selection_changed = block_selection != 0;
         if block_selection < 0 {
             selected_block = (selected_block + placeable_blocks.len() - 1) % placeable_blocks.len();
@@ -639,6 +687,7 @@ fn main() {
                     cube.translate(terrain_offset);
                 }
                 block_placed = true;
+                place_sound.play();
             }
         }
 
@@ -667,6 +716,7 @@ fn main() {
                     cube.translate(terrain_offset);
                 }
                 block_removed = true;
+                remove_sound.play();
             }
         }
 
@@ -695,6 +745,17 @@ fn main() {
             character_y = previous_y;
             vertical_velocity = 0.0;
             character_moved = true;
+        }
+
+        if world_moved && vertical_velocity == 0.0 && (character_y - ground_y).abs() <= 0.001 {
+            step_timer += delta_time;
+            if step_timer >= STEP_INTERVAL {
+                step_sounds[next_step].play();
+                next_step = (next_step + 1) % step_sounds.len();
+                step_timer = 0.0;
+            }
+        } else {
+            step_timer = STEP_INTERVAL;
         }
 
         if world_moved
