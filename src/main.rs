@@ -61,7 +61,9 @@ fn main() {
     const FULL_RENDER_PIXEL_SIZE: u32 = 1;
     const TERRAIN_GRID_SIZE: usize = 32;
     const CHARACTER_HEIGHT: f32 = 2.0;
-    const MOVEMENT_SPEED: f32 = 5.0;
+    const MOVEMENT_SPEED: f32 = 10.0;
+    const WALK_CYCLE_SPEED: f32 = 15.0;
+    const LIMB_SWING: f32 = 1.5;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -503,6 +505,8 @@ fn main() {
     let mut vertical_velocity = 0.0;
     let mut movement_x = 0.0_f32;
     let mut movement_z = 0.0_f32;
+    let mut walk_phase = 0.0_f32;
+    let mut walk_angle = 0.0_f32;
 
     while !rl.window_should_close() {
         let (changed, is_moving, (dx, dz), jump_pressed) =
@@ -594,6 +598,19 @@ fn main() {
             }
         }
 
+        let previous_walk_angle = walk_angle;
+        if world_moved {
+            walk_phase += delta_time * WALK_CYCLE_SPEED;
+            walk_angle = walk_phase.sin() * LIMB_SWING;
+        } else {
+            walk_angle *= (1.0 - delta_time * WALK_CYCLE_SPEED).max(0.0);
+            if walk_angle.abs() < 0.001 {
+                walk_angle = 0.0;
+                walk_phase = 0.0;
+            }
+        }
+        let character_animated = walk_angle != previous_walk_angle;
+
         let previous_y = character_y;
         let mut character_moved = update_jump(
             &mut character_y,
@@ -608,15 +625,14 @@ fn main() {
             character_moved = true;
         }
 
-        if world_moved || character_moved || character_rotated {
+        if world_moved || character_moved || character_rotated || character_animated {
             let character_at_ground = character
                 .iter()
                 .map(|triangle| {
-                    triangle.rotated_y(character_angle).translated(Vec3A::new(
-                        0.0,
-                        character_y,
-                        0.0,
-                    ))
+                    triangle
+                        .animated(walk_angle)
+                        .rotated_y(character_angle)
+                        .translated(Vec3A::new(0.0, character_y, 0.0))
                 })
                 .collect();
             scene = Bvh::new(cubes.clone(), character_at_ground);
@@ -625,15 +641,20 @@ fn main() {
             lights.extend(scene.emissive_lights());
         }
 
-        let rendered =
-            changed || world_moved || character_moved || character_rotated || needs_full_render;
+        let rendered = changed
+            || world_moved
+            || character_moved
+            || character_rotated
+            || character_animated
+            || needs_full_render;
 
         if rendered {
-            let current_pixel_size = if is_moving || world_moved || character_moved {
-                PREVIEW_PIXEL_SIZE
-            } else {
-                FULL_RENDER_PIXEL_SIZE
-            };
+            let current_pixel_size =
+                if is_moving || world_moved || character_moved || character_animated {
+                    PREVIEW_PIXEL_SIZE
+                } else {
+                    FULL_RENDER_PIXEL_SIZE
+                };
 
             render(
                 &mut framebuffer,
@@ -648,7 +669,8 @@ fn main() {
                 current_pixel_size,
             );
 
-            needs_full_render = is_moving || world_moved || character_moved;
+            needs_full_render =
+                is_moving || world_moved || character_moved || character_animated;
         }
 
         framebuffer.swap_buffers(&mut rl, &thread, rendered);

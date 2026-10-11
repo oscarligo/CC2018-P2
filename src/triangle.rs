@@ -14,6 +14,8 @@ pub struct Triangle {
     pub center: Vec3A,
     tangent: Vec3A,
     bitangent: Vec3A,
+    animation_pivot: Vec3A,
+    animation_phase: f32,
 }
 
 impl Triangle {
@@ -22,6 +24,8 @@ impl Triangle {
         normals: [Vec3A; 3],
         uvs: [(f32, f32); 3],
         material: Material,
+        animation_pivot: Vec3A,
+        animation_phase: f32,
     ) -> Self {
         let edge = vertices[1] - vertices[0];
         let face_normal = edge.cross(vertices[2] - vertices[0]).normalize();
@@ -40,6 +44,8 @@ impl Triangle {
             center: (vertices[0] + vertices[1] + vertices[2]) / 3.0,
             tangent,
             bitangent,
+            animation_pivot,
+            animation_phase,
         }
     }
 
@@ -62,6 +68,33 @@ impl Triangle {
             .map(|normal| normal.rotate_around(Vec3A::Y, angle));
         triangle.tangent = triangle.tangent.rotate_around(Vec3A::Y, angle);
         triangle.bitangent = triangle.bitangent.rotate_around(Vec3A::Y, angle);
+        triangle.min_b = triangle.vertices[0]
+            .min(triangle.vertices[1])
+            .min(triangle.vertices[2]);
+        triangle.max_b = triangle.vertices[0]
+            .max(triangle.vertices[1])
+            .max(triangle.vertices[2]);
+        triangle.center =
+            (triangle.vertices[0] + triangle.vertices[1] + triangle.vertices[2]) / 3.0;
+        triangle
+    }
+
+    pub fn animated(&self, angle: f32) -> Self {
+        if self.animation_phase == 0.0 || angle == 0.0 {
+            return *self;
+        }
+
+        let mut triangle = *self;
+        let angle = angle * self.animation_phase;
+        let axis = Vec3A::new(0.0, 0.0, 1.0);
+        triangle.vertices = triangle.vertices.map(|vertex| {
+            (vertex - self.animation_pivot).rotate_around(axis, angle) + self.animation_pivot
+        });
+        triangle.normals = triangle
+            .normals
+            .map(|normal| normal.rotate_around(axis, angle));
+        triangle.tangent = triangle.tangent.rotate_around(axis, angle);
+        triangle.bitangent = triangle.bitangent.rotate_around(axis, angle);
         triangle.min_b = triangle.vertices[0]
             .min(triangle.vertices[1])
             .min(triangle.vertices[2]);
@@ -140,11 +173,13 @@ fn parse_obj(source: &str, height: f32, material: Material) -> Result<Vec<Triang
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
     let mut faces = Vec::new();
+    let mut group = 0;
 
     for (line_index, line) in source.lines().enumerate() {
         let line_number = line_index + 1;
         let parts: Vec<_> = line.split_whitespace().collect();
         match parts.first().copied() {
+            Some("g") => group += 1,
             Some("v") => vertices.push(parse_vec3(&parts, line_number)?),
             Some("vn") => normals.push(parse_vec3(&parts, line_number)?.normalize()),
             Some("vt") => {
@@ -159,11 +194,14 @@ fn parse_obj(source: &str, height: f32, material: Material) -> Result<Vec<Triang
                 if parts.len() != 4 {
                     return Err(format!("línea {line_number}: la cara no es un triángulo"));
                 }
-                faces.push([
-                    parse_face_vertex(parts[1], line_number)?,
-                    parse_face_vertex(parts[2], line_number)?,
-                    parse_face_vertex(parts[3], line_number)?,
-                ]);
+                faces.push((
+                    [
+                        parse_face_vertex(parts[1], line_number)?,
+                        parse_face_vertex(parts[2], line_number)?,
+                        parse_face_vertex(parts[3], line_number)?,
+                    ],
+                    group,
+                ));
             }
             _ => {}
         }
@@ -187,10 +225,24 @@ fn parse_obj(source: &str, height: f32, material: Material) -> Result<Vec<Triang
     }
     let scale = height / model_height;
     let origin = Vec3A::new((min.x + max.x) * 0.5, min.y, (min.z + max.z) * 0.5);
+    let mut group_bounds = vec![
+        (
+            Vec3A::splat(f32::INFINITY),
+            Vec3A::splat(f32::NEG_INFINITY),
+        );
+        group + 1
+    ];
+    for (face, group) in &faces {
+        for [vertex, _, _] in face {
+            let position = (vertices[*vertex] - origin) * scale;
+            group_bounds[*group].0 = group_bounds[*group].0.min(position);
+            group_bounds[*group].1 = group_bounds[*group].1.max(position);
+        }
+    }
 
     faces
         .into_iter()
-        .map(|face| {
+        .map(|(face, group)| {
             let mut positions = [Vec3A::ZERO; 3];
             let mut face_normals = [Vec3A::ZERO; 3];
             let mut face_uvs = [(0.0, 0.0); 3];
@@ -207,7 +259,26 @@ fn parse_obj(source: &str, height: f32, material: Material) -> Result<Vec<Triang
                     .get(normal)
                     .ok_or_else(|| format!("índice normal {} fuera de rango", normal + 1))?;
             }
-            Ok(Triangle::new(positions, face_normals, face_uvs, material))
+            // shortcut: character.obj orders limbs as groups 3-6; use named groups if the model changes.
+            let animation_phase = match group {
+                3 | 4 => 1.0,
+                5 | 6 => -1.0,
+                _ => 0.0,
+            };
+            let (part_min, part_max) = group_bounds[group];
+            let animation_pivot = Vec3A::new(
+                (part_min.x + part_max.x) * 0.5,
+                part_max.y,
+                (part_min.z + part_max.z) * 0.5,
+            );
+            Ok(Triangle::new(
+                positions,
+                face_normals,
+                face_uvs,
+                material,
+                animation_pivot,
+                animation_phase,
+            ))
         })
         .collect()
 }
