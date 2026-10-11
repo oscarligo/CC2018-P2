@@ -41,21 +41,19 @@ impl EventHandler {
         let mut shift_x = 0;
         let mut shift_z = 0;
 
-        if rl.is_key_pressed(KeyboardKey::KEY_W) {
+        if rl.is_key_down(KeyboardKey::KEY_W) {
             shift_z -= 1;
         }
-        if rl.is_key_pressed(KeyboardKey::KEY_S) {
+        if rl.is_key_down(KeyboardKey::KEY_S) {
             shift_z += 1;
         }
-        if rl.is_key_pressed(KeyboardKey::KEY_A) {
+        if rl.is_key_down(KeyboardKey::KEY_A) {
             shift_x -= 1;
         }
-        if rl.is_key_pressed(KeyboardKey::KEY_D) {
+        if rl.is_key_down(KeyboardKey::KEY_D) {
             shift_x += 1;
         }
         let jump_pressed = rl.is_key_pressed(KeyboardKey::KEY_SPACE);
-
-        let terrain_moved = shift_x != 0 || shift_z != 0;
 
         // Camera movement
         let lmb_down = rl.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT);
@@ -85,7 +83,7 @@ impl EventHandler {
         }
 
         let camera_changed = camera.is_changed();
-        let total_changed = changed || camera_changed || terrain_moved;
+        let total_changed = changed || camera_changed;
 
         (
             total_changed,

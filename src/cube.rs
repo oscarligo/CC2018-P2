@@ -26,6 +26,12 @@ impl Cube {
             inv_half,
         }
     }
+
+    pub fn translate(&mut self, offset: Vec3A) {
+        self.center += offset;
+        self.min_b += offset;
+        self.max_b += offset;
+    }
 }
 
 impl RayIntersect for Cube {

@@ -25,7 +25,7 @@ use vector::Vec3A;
 use world_gen::terrain::WorldGenerator;
 
 const JUMP_SPEED: f32 = 7.5;
-const GRAVITY: f32 = 24.0;
+const GRAVITY: f32 = 22.0;
 
 fn update_jump(
     character_y: &mut f32,
@@ -61,6 +61,7 @@ fn main() {
     const FULL_RENDER_PIXEL_SIZE: u32 = 1;
     const TERRAIN_GRID_SIZE: usize = 32;
     const CHARACTER_HEIGHT: f32 = 2.0;
+    const MOVEMENT_SPEED: f32 = 5.0;
 
     let (mut rl, thread) = raylib::init()
         .size(width as i32, height as i32)
@@ -500,34 +501,96 @@ fn main() {
     let mut needs_full_render = true;
     let mut character_angle = 0.0_f32;
     let mut vertical_velocity = 0.0;
+    let mut movement_x = 0.0_f32;
+    let mut movement_z = 0.0_f32;
 
     while !rl.window_should_close() {
         let (changed, is_moving, (dx, dz), jump_pressed) =
             event_handler.handle_events(&rl, &mut camera, &mut render_mode);
+        let delta_time = rl.get_frame_time().min(0.05);
         let movement_requested = dx != 0 || dz != 0;
+        let mut character_rotated = false;
+        let mut world_moved = false;
 
         if movement_requested {
-            character_angle = (-dz as f32).atan2(dx as f32);
-            if let Some(target_ground) =
-                generator.movement_ground(dx, dz, character_y, CHARACTER_HEIGHT)
-            {
-                generator.shift(dx, dz);
-                ground_y = target_ground;
-                cubes = generator.generate(
-                    stone,
-                    ice,
-                    brick,
-                    wood,
-                    gold_block,
-                    white_glass,
-                    cobblestone,
-                    prismarine,
-                    copper,
-                    log,
-                    log,
-                    moss,
-                    glowstone,
-                );
+            let next_angle = (-dz as f32).atan2(dx as f32);
+            character_rotated = next_angle != character_angle;
+            character_angle = next_angle;
+
+            let direction_length = ((dx * dx + dz * dz) as f32).sqrt();
+            let step = MOVEMENT_SPEED * delta_time / direction_length;
+            let next_x = movement_x + dx as f32 * step;
+            let next_z = movement_z + dz as f32 * step;
+            let target_x = if next_x.abs() > movement_x.abs() {
+                next_x.signum() as i32
+            } else {
+                0
+            };
+            let target_z = if next_z.abs() > movement_z.abs() {
+                next_z.signum() as i32
+            } else {
+                0
+            };
+            let shift_x = if next_x.abs() >= 1.0 {
+                next_x.signum() as i32
+            } else {
+                0
+            };
+            let shift_z = if next_z.abs() >= 1.0 {
+                next_z.signum() as i32
+            } else {
+                0
+            };
+            let target_clear = generator
+                .movement_ground(target_x, target_z, character_y, CHARACTER_HEIGHT)
+                .is_some();
+            let shifted_ground = if shift_x != 0 || shift_z != 0 {
+                generator.movement_ground(shift_x, shift_z, character_y, CHARACTER_HEIGHT)
+            } else {
+                Some(ground_y)
+            };
+
+            if target_clear && shifted_ground.is_some() {
+                movement_x = next_x - shift_x as f32;
+                movement_z = next_z - shift_z as f32;
+                world_moved = true;
+
+                if shift_x != 0 || shift_z != 0 {
+                    generator.shift(shift_x, shift_z);
+                    ground_y = shifted_ground.unwrap();
+                    cubes = generator.generate(
+                        stone,
+                        ice,
+                        brick,
+                        wood,
+                        gold_block,
+                        white_glass,
+                        cobblestone,
+                        prismarine,
+                        copper,
+                        log,
+                        log,
+                        moss,
+                        glowstone,
+                    );
+                }
+
+                let terrain_offset = if shift_x != 0 || shift_z != 0 {
+                    Vec3A::new(
+                        -movement_x * generator.block_size,
+                        0.0,
+                        -movement_z * generator.block_size,
+                    )
+                } else {
+                    Vec3A::new(
+                        -dx as f32 * step * generator.block_size,
+                        0.0,
+                        -dz as f32 * step * generator.block_size,
+                    )
+                };
+                for cube in &mut cubes {
+                    cube.translate(terrain_offset);
+                }
             }
         }
 
@@ -537,7 +600,7 @@ fn main() {
             &mut vertical_velocity,
             ground_y,
             jump_pressed,
-            rl.get_frame_time().min(0.05),
+            delta_time,
         );
         if character_y > previous_y && generator.player_collides(character_y, CHARACTER_HEIGHT) {
             character_y = previous_y;
@@ -545,7 +608,7 @@ fn main() {
             character_moved = true;
         }
 
-        if movement_requested || character_moved {
+        if world_moved || character_moved || character_rotated {
             let character_at_ground = character
                 .iter()
                 .map(|triangle| {
@@ -562,10 +625,11 @@ fn main() {
             lights.extend(scene.emissive_lights());
         }
 
-        let rendered = changed || character_moved || needs_full_render;
+        let rendered =
+            changed || world_moved || character_moved || character_rotated || needs_full_render;
 
         if rendered {
-            let current_pixel_size = if is_moving || character_moved {
+            let current_pixel_size = if is_moving || world_moved || character_moved {
                 PREVIEW_PIXEL_SIZE
             } else {
                 FULL_RENDER_PIXEL_SIZE
@@ -584,7 +648,7 @@ fn main() {
                 current_pixel_size,
             );
 
-            needs_full_render = is_moving || character_moved;
+            needs_full_render = is_moving || world_moved || character_moved;
         }
 
         framebuffer.swap_buffers(&mut rl, &thread, rendered);
