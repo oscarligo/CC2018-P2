@@ -1,12 +1,57 @@
 use crate::caster::{BIAS, Intersection, Ray, RayIntersect};
 use crate::cube::Cube;
 use crate::material::Light;
+use crate::triangle::Triangle;
 use crate::vector::Vec3A;
 
 pub struct Bvh {
-    objects: Vec<Cube>,
+    objects: Vec<Object>,
     indices: Vec<usize>,
     nodes: Vec<Node>,
+}
+
+enum Object {
+    Cube(Cube),
+    Triangle(Triangle),
+}
+
+impl Object {
+    fn center(&self) -> Vec3A {
+        match self {
+            Self::Cube(object) => object.center,
+            Self::Triangle(object) => object.center,
+        }
+    }
+
+    fn min_b(&self) -> Vec3A {
+        match self {
+            Self::Cube(object) => object.min_b,
+            Self::Triangle(object) => object.min_b,
+        }
+    }
+
+    fn max_b(&self) -> Vec3A {
+        match self {
+            Self::Cube(object) => object.max_b,
+            Self::Triangle(object) => object.max_b,
+        }
+    }
+
+    fn material(&self) -> crate::material::Material {
+        match self {
+            Self::Cube(object) => object.material,
+            Self::Triangle(object) => object.material,
+        }
+    }
+}
+
+impl RayIntersect for Object {
+    fn intersect(&self, ray: &Ray) -> Intersection {
+        match self {
+            Self::Cube(object) => object.intersect(ray),
+            Self::Triangle(object) => object.intersect(ray),
+        }
+    }
 }
 
 struct Node {
@@ -45,7 +90,12 @@ impl Node {
 }
 
 impl Bvh {
-    pub fn new(objects: Vec<Cube>) -> Self {
+    pub fn new(cubes: Vec<Cube>, triangles: Vec<Triangle>) -> Self {
+        let objects: Vec<_> = cubes
+            .into_iter()
+            .map(Object::Cube)
+            .chain(triangles.into_iter().map(Object::Triangle))
+            .collect();
         let count = objects.len();
         let mut bvh = Self {
             objects,
@@ -62,8 +112,8 @@ impl Bvh {
         let mut min = Vec3A::splat(f32::INFINITY);
         let mut max = Vec3A::splat(f32::NEG_INFINITY);
         for &index in &self.indices[start..end] {
-            min = min.min(self.objects[index].min_b);
-            max = max.max(self.objects[index].max_b);
+            min = min.min(self.objects[index].min_b());
+            max = max.max(self.objects[index].max_b());
         }
         let node = self.nodes.len();
         self.nodes.push(Node {
@@ -83,8 +133,8 @@ impl Bvh {
             let middle = start + (end - start) / 2;
             let objects = &self.objects;
             self.indices[start..end].select_nth_unstable_by(middle - start, |&a, &b| {
-                objects[a].center[axis]
-                    .total_cmp(&objects[b].center[axis])
+                objects[a].center()[axis]
+                    .total_cmp(&objects[b].center()[axis])
                     .then(a.cmp(&b))
             });
             let left = self.build(start, middle);
@@ -106,11 +156,11 @@ impl Bvh {
     pub fn emissive_lights(&self) -> impl Iterator<Item = Light> + '_ {
         self.objects
             .iter()
-            .filter(|cube| cube.material.emission_strength > 0.0)
-            .map(|cube| Light {
-                position: cube.center,
-                intensity: cube.material.emission_strength,
-                color: cube.material.emission_color,
+            .filter(|object| object.material().emission_strength > 0.0)
+            .map(|object| Light {
+                position: object.center(),
+                intensity: object.material().emission_strength,
+                color: object.material().emission_color,
                 attenuation: 0.1,
             })
     }
@@ -185,12 +235,14 @@ impl Bvh {
             NodeKind::Leaf { start, end } => self.indices[start..end].iter().any(|&index| {
                 let object = &self.objects[index];
                 let hit = object.intersect(ray);
-                let contains_light = light_position.x >= object.min_b.x
-                    && light_position.x <= object.max_b.x
-                    && light_position.y >= object.min_b.y
-                    && light_position.y <= object.max_b.y
-                    && light_position.z >= object.min_b.z
-                    && light_position.z <= object.max_b.z;
+                let min_b = object.min_b();
+                let max_b = object.max_b();
+                let contains_light = light_position.x >= min_b.x
+                    && light_position.x <= max_b.x
+                    && light_position.y >= min_b.y
+                    && light_position.y <= max_b.y
+                    && light_position.z >= min_b.z
+                    && light_position.z <= max_b.z;
                 hit.is_intersecting
                     && hit.distance > BIAS
                     && hit.distance < max_distance

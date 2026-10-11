@@ -1,9 +1,9 @@
 use crate::vector::Vec3A;
 /*
-    This class represents a texture loaded from an image file (PNG/JPG) 
-    and provides functionality to sample colors based on UV coordinates. 
-    It supports both sRGB and linear color spaces, allowing for proper 
-    handling of different types of textures such as diffuse maps 
+    This class represents a texture loaded from an image file (PNG/JPG)
+    and provides functionality to sample colors based on UV coordinates.
+    It supports both sRGB and linear color spaces, allowing for proper
+    handling of different types of textures such as diffuse maps
     and normal/specular maps.
 */
 
@@ -29,9 +29,20 @@ impl Texture {
     /// `is_srgb = true` for Diffuse (linearizes with pow 2.2)
     /// `is_srgb = false` for Normal and Specular (direct vector data)
     pub fn load(path: &str, is_srgb: bool) -> Self {
-        let img = image::open(path)
+        Self::from_image(path, is_srgb, None)
+    }
+
+    pub fn load_resized(path: &str, is_srgb: bool, max_size: u32) -> Self {
+        Self::from_image(path, is_srgb, Some(max_size))
+    }
+
+    fn from_image(path: &str, is_srgb: bool, max_size: Option<u32>) -> Self {
+        let mut img = image::open(path)
             .unwrap_or_else(|_| panic!("No se pudo cargar la imagen: {}", path))
             .into_rgb8();
+        if let Some(max_size) = max_size {
+            img = image::imageops::thumbnail(&img, max_size, max_size);
+        }
 
         // Get the dimensions of the image
         let width = img.width();
@@ -46,7 +57,7 @@ impl Texture {
                 let mut g = p.0[1] as f32 / 255.0;
                 let mut b = p.0[2] as f32 / 255.0;
 
-                // If the texture is in sRGB space, convert it to linear 
+                // If the texture is in sRGB space, convert it to linear
                 // space using the inverse gamma correction (pow 2.2)
                 if is_srgb {
                     r = r.powf(2.2);
@@ -59,7 +70,11 @@ impl Texture {
             })
             .collect();
 
-        Self { width, height, pixels }
+        Self {
+            width,
+            height,
+            pixels,
+        }
     }
 
     // Sample the texture color at given UV coordinates (u, v)
