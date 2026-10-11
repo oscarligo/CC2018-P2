@@ -58,11 +58,11 @@ fn main() {
     let parallel_rendering = true;
 
     const PREVIEW_PIXEL_SIZE: u32 = 2;
-    const FULL_RENDER_PIXEL_SIZE: u32 = 1;
+    const FULL_RENDER_PIXEL_SIZE: u32 = 2;
     const TERRAIN_GRID_SIZE: usize = 32;
     const CHARACTER_HEIGHT: f32 = 2.0;
     const MOVEMENT_SPEED: f32 = 10.0;
-    const WALK_CYCLE_SPEED: f32 = 15.0;
+    const WALK_CYCLE_SPEED: f32 = 12.0;
     const LIMB_SWING: f32 = 1.5;
 
     let (mut rl, thread) = raylib::init()
@@ -512,19 +512,18 @@ fn main() {
         let (changed, is_moving, (dx, dz), jump_pressed) =
             event_handler.handle_events(&rl, &mut camera, &mut render_mode);
         let delta_time = rl.get_frame_time().min(0.05);
-        let movement_requested = dx != 0 || dz != 0;
+        let movement_requested = dx != 0.0 || dz != 0.0;
         let mut character_rotated = false;
         let mut world_moved = false;
 
         if movement_requested {
-            let next_angle = (-dz as f32).atan2(dx as f32);
+            let next_angle = (-dz).atan2(dx);
             character_rotated = next_angle != character_angle;
             character_angle = next_angle;
 
-            let direction_length = ((dx * dx + dz * dz) as f32).sqrt();
-            let step = MOVEMENT_SPEED * delta_time / direction_length;
-            let next_x = movement_x + dx as f32 * step;
-            let next_z = movement_z + dz as f32 * step;
+            let step = MOVEMENT_SPEED * delta_time;
+            let next_x = movement_x + dx * step;
+            let next_z = movement_z + dz * step;
             let target_x = if next_x.abs() > movement_x.abs() {
                 next_x.signum() as i32
             } else {
@@ -587,9 +586,9 @@ fn main() {
                     )
                 } else {
                     Vec3A::new(
-                        -dx as f32 * step * generator.block_size,
+                        -dx * step * generator.block_size,
                         0.0,
-                        -dz as f32 * step * generator.block_size,
+                        -dz * step * generator.block_size,
                     )
                 };
                 for cube in &mut cubes {

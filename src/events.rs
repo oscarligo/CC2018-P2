@@ -15,7 +15,7 @@ impl EventHandler {
         rl: &RaylibHandle,
         camera: &mut Camera,
         mode: &mut RenderMode,
-    ) -> (bool, bool, (i32, i32), bool) {
+    ) -> (bool, bool, (f32, f32), bool) {
         let mut changed = false;
         let mut camera_moving = false;
 
@@ -82,13 +82,23 @@ impl EventHandler {
             camera_moving = true;
         }
 
+        let movement = if shift_x != 0 || shift_z != 0 {
+            let forward = Vec3A::new(camera.forward.x, 0.0, camera.forward.z).normalize();
+            let right = Vec3A::new(camera.right.x, 0.0, camera.right.z).normalize();
+            let direction = right * shift_x as f32 - forward * shift_z as f32;
+            let direction = direction.normalize();
+            (direction.x, direction.z)
+        } else {
+            (0.0, 0.0)
+        };
+
         let camera_changed = camera.is_changed();
         let total_changed = changed || camera_changed;
 
         (
             total_changed,
             camera_moving,
-            (shift_x, shift_z),
+            movement,
             jump_pressed,
         )
     }
