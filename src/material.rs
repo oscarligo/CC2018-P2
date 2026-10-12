@@ -10,7 +10,6 @@ pub struct MaterialTextureIds {
     pub specular_id: Option<usize>,
 }
 
-
 impl MaterialTextureIds {
     // Returns an empty MaterialTextureIds with no textures assigned.
     pub const fn empty() -> Self {
@@ -24,8 +23,8 @@ impl MaterialTextureIds {
 
 #[derive(Clone, Copy, Debug)]
 pub struct Material {
-    pub diffuse_color: Vec3A,   // Base color of the material
-    pub albedo: [f32; 4],       // Albedo factors for diffuse, specular, reflection, and refraction
+    pub diffuse_color: Vec3A,         // Base color of the material
+    pub albedo: [f32; 4], // Albedo factors for diffuse, specular, reflection, and refraction
     pub specular_exponent: f32, // Also known as "shininess", controls the size of specular highlights
     pub refractive_index: f32,  // Index of refraction for transparent materials
     pub emission_strength: f32, // Light emitted by the material, independent of scene lights
@@ -39,9 +38,9 @@ pub struct Material {
 */
 #[derive(Clone, Copy, Debug)]
 pub struct Light {
-    pub position: Vec3A, // Position of the light in world space
-    pub intensity: f32, // Intensity of the light, affecting how bright it appears
-    pub color: Vec3A, // Color of the light, allowing for colored lighting effects
+    pub position: Vec3A,  // Position of the light in world space
+    pub intensity: f32,   // Intensity of the light, affecting how bright it appears
+    pub color: Vec3A,     // Color of the light, allowing for colored lighting effects
     pub attenuation: f32, // Quadratic falloff; zero for directional-like lights
 }
 

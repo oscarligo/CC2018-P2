@@ -50,9 +50,7 @@ impl TreePrefab {
             .map(|((x, y, z), id)| (x, y, z, id))
             .collect();
 
-        Self {
-            blocks,
-        }
+        Self { blocks }
     }
 
     pub fn stamp_at_world_pos(

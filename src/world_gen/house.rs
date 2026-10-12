@@ -8,14 +8,14 @@ impl HousePrefab {
 
         const W: usize = 10;
         const D: usize = 10;
-        const WOOD: u8 = 4;       
-        const ROOF: u8 = 5;       
-        const GLASS: u8 = 6;      
-        const EXT_FLOOR: u8 = 7;  
-        const INT_FLOOR: u8 = 8;  
-        const INT_DETAIL: u8 = 9; 
-        const PILLAR: u8 = 10;    
-        const LIGHT: u8 = 13;     
+        const WOOD: u8 = 4;
+        const ROOF: u8 = 5;
+        const GLASS: u8 = 6;
+        const EXT_FLOOR: u8 = 7;
+        const INT_FLOOR: u8 = 8;
+        const INT_DETAIL: u8 = 9;
+        const PILLAR: u8 = 10;
+        const LIGHT: u8 = 13;
 
         let mut voxels = BTreeMap::new();
         let mut put = |x: usize, y: usize, z: usize, id: u8| {
@@ -139,8 +139,10 @@ impl HousePrefab {
             let local_z = target_wz - offset_z;
             let local_y = world_gy + ly;
 
-            if local_x >= 0 && local_x < sx as i32
-                && local_z >= 0 && local_z < sz as i32
+            if local_x >= 0
+                && local_x < sx as i32
+                && local_z >= 0
+                && local_z < sz as i32
                 && local_y < sy
             {
                 grid[idx(local_x as usize, local_y, local_z as usize)] = block_id;

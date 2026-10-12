@@ -15,7 +15,7 @@ use bvh::Bvh;
 use camera::Camera;
 use cube::Cube;
 use events::EventHandler;
-use framebuffer::Framebuffer;
+use framebuffer::{Framebuffer, TitleScreen};
 use material::{Light, Material, MaterialTextureIds};
 use raylib::prelude::*;
 use render::{RenderMode, render};
@@ -27,6 +27,20 @@ use world_gen::terrain::WorldGenerator;
 
 const JUMP_SPEED: f32 = 7.5;
 const GRAVITY: f32 = 22.0;
+
+#[derive(Clone, Copy)]
+enum GameState {
+    Title,
+    Entering { elapsed: f32, start_eye: Vec3A },
+    Playing,
+}
+
+fn contains(bounds: Rectangle, point: Vector2) -> bool {
+    point.x >= bounds.x
+        && point.x <= bounds.x + bounds.width
+        && point.y >= bounds.y
+        && point.y <= bounds.y + bounds.height
+}
 
 fn held_block(character_y: f32, character_angle: f32, walk_angle: f32, material: Material) -> Cube {
     let arm_pivot = Vec3A::new(0.0, 1.49, -0.34);
@@ -80,6 +94,11 @@ fn main() {
 
     const PREVIEW_PIXEL_SIZE: u32 = 2;
     const FULL_RENDER_PIXEL_SIZE: u32 = 2;
+    const TITLE_PIXEL_SIZE: u32 = 4;
+    const TITLE_BLUR_RADIUS: u32 = 6;
+    const TITLE_ORBIT_SPEED: f32 = 0.12;
+    const INTRO_DURATION: f32 = 1.6;
+    const TITLE_BUTTON_SCALE: f32 = 2.0;
     const TERRAIN_GRID_SIZE: usize = 32;
     const CHARACTER_HEIGHT: f32 = 2.0;
     const MOVEMENT_SPEED: f32 = 10.0;
@@ -151,14 +170,15 @@ fn main() {
         load_ui_texture(&mut rl, &thread, "assets/ui/heart_3.png"),
         load_ui_texture(&mut rl, &thread, "assets/ui/heart_4.png"),
     ];
+    let title = load_ui_texture(&mut rl, &thread, "assets/ui/tiltle.png");
+    let singleplayer_button =
+        load_ui_texture(&mut rl, &thread, "assets/ui/singleplayer_button.png");
+    let singleplayer_highlighted =
+        load_ui_texture(&mut rl, &thread, "assets/ui/singleplayer_highlighted.png");
+    let quit_button = load_ui_texture(&mut rl, &thread, "assets/ui/quit_button.png");
+    let quit_highlighted = load_ui_texture(&mut rl, &thread, "assets/ui/quit_highlighted.png");
 
     let mut framebuffer = Framebuffer::new(&mut rl, &thread, width, height, Color::BLACK);
-
-    let mut camera = Camera::new(
-        Vec3A::new(0.0, 6.0, 12.0),
-        Vec3A::new(0.0, 1.0, 0.0),
-        Vec3A::new(0.0, 1.0, 0.0),
-    );
 
     let mut textures = vec![
         Texture::load("assets/blocks/brick/diffuse.png", true),
@@ -579,6 +599,13 @@ fn main() {
     let mut cubes = generate_world(&generator);
     let mut ground_y = generator.center_ground_height();
     let mut character_y = ground_y;
+    let gameplay_camera_center = Vec3A::new(0.0, character_y + 1.0, 0.0);
+    let gameplay_camera_eye = Vec3A::new(0.0, character_y + 5.0, 12.0);
+    let mut camera = Camera::new(
+        gameplay_camera_center + Vec3A::new(20.0, 10.0, 20.0),
+        gameplay_camera_center,
+        Vec3A::Y,
+    );
     let character_at_ground = character
         .iter()
         .map(|triangle| triangle.translated(Vec3A::new(0.0, character_y, 0.0)))
@@ -599,8 +626,42 @@ fn main() {
     let mut step_timer = STEP_INTERVAL;
     let mut next_step = 0;
     let mut active_toast: Option<(usize, f32)> = None;
+    let mut game_state = GameState::Title;
 
     while !rl.window_should_close() {
+        let frame_time = rl.get_frame_time();
+        let delta_time = frame_time.min(0.05);
+        let button_width = singleplayer_button.width as f32 * TITLE_BUTTON_SCALE;
+        let button_height = singleplayer_button.height as f32 * TITLE_BUTTON_SCALE;
+        let quit_bounds = Rectangle::new(
+            (width as f32 - button_width) * 0.5,
+            (height as f32 + 12.0) * 0.5,
+            button_width,
+            button_height,
+        );
+        let singleplayer_bounds = Rectangle::new(
+            quit_bounds.x,
+            quit_bounds.y - button_height - 12.0,
+            button_width,
+            button_height,
+        );
+        let mouse = rl.get_mouse_position();
+        let title_active = matches!(game_state, GameState::Title);
+        let singleplayer_hovered = title_active && contains(singleplayer_bounds, mouse);
+        let quit_hovered = title_active && contains(quit_bounds, mouse);
+        if title_active && rl.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
+            if quit_hovered {
+                break;
+            }
+            if singleplayer_hovered {
+                game_state = GameState::Entering {
+                    elapsed: 0.0,
+                    start_eye: camera.eye,
+                };
+            }
+        }
+
+        let mut intro_finished = false;
         let (
             changed,
             is_moving,
@@ -610,9 +671,27 @@ fn main() {
             music_selection,
             place_block,
             remove_block,
-        ) = event_handler.handle_events(&rl, &mut camera, &mut render_mode);
-        let frame_time = rl.get_frame_time();
-        let delta_time = frame_time.min(0.05);
+        ) = match &mut game_state {
+            GameState::Title => {
+                camera.orbit(TITLE_ORBIT_SPEED * delta_time, 0.0);
+                (true, true, (0.0, 0.0), false, 0, 0, false, false)
+            }
+            GameState::Entering { elapsed, start_eye } => {
+                *elapsed += delta_time;
+                let progress = (*elapsed / INTRO_DURATION).clamp(0.0, 1.0);
+                let eased = progress * progress * (3.0 - 2.0 * progress);
+                camera.eye = *start_eye * (1.0 - eased) + gameplay_camera_eye * eased;
+                camera.center = gameplay_camera_center;
+                camera.update_basis_vectors();
+                intro_finished = progress >= 1.0;
+                (true, true, (0.0, 0.0), false, 0, 0, false, false)
+            }
+            GameState::Playing => event_handler.handle_events(&rl, &mut camera, &mut render_mode),
+        };
+        if intro_finished {
+            game_state = GameState::Playing;
+            needs_full_render = true;
+        }
         let toast_out_at = TOAST_SLIDE_DURATION + TOAST_VISIBLE_DURATION;
         let toast_end = toast_out_at + TOAST_SLIDE_DURATION;
         let (play_toast_out, hide_toast) = if let Some((_, elapsed)) = &mut active_toast {
@@ -863,12 +942,13 @@ fn main() {
             || needs_full_render;
 
         if rendered {
-            let current_pixel_size =
-                if is_moving || world_moved || character_moved || character_animated {
-                    PREVIEW_PIXEL_SIZE
-                } else {
-                    FULL_RENDER_PIXEL_SIZE
-                };
+            let current_pixel_size = if !matches!(game_state, GameState::Playing) {
+                TITLE_PIXEL_SIZE
+            } else if is_moving || world_moved || character_moved || character_animated {
+                PREVIEW_PIXEL_SIZE
+            } else {
+                FULL_RENDER_PIXEL_SIZE
+            };
 
             render(
                 &mut framebuffer,
@@ -903,6 +983,29 @@ fn main() {
             RenderMode::BasicLight => 2,
             RenderMode::Full => 3,
         };
+        let blur_radius = match game_state {
+            GameState::Title => TITLE_BLUR_RADIUS,
+            GameState::Entering { elapsed, .. } => {
+                ((1.0 - elapsed / INTRO_DURATION).clamp(0.0, 1.0) * TITLE_BLUR_RADIUS as f32).ceil()
+                    as u32
+            }
+            GameState::Playing => 0,
+        };
+        let title_screen = matches!(game_state, GameState::Title).then(|| TitleScreen {
+            title: &title,
+            singleplayer: if singleplayer_hovered {
+                &singleplayer_highlighted
+            } else {
+                &singleplayer_button
+            },
+            quit: if quit_hovered {
+                &quit_highlighted
+            } else {
+                &quit_button
+            },
+            singleplayer_bounds,
+            quit_bounds,
+        });
         framebuffer.swap_buffers(
             &mut rl,
             &thread,
@@ -916,6 +1019,9 @@ fn main() {
             &effect_selector,
             &hearts,
             selected_effect,
+            blur_radius,
+            title_screen,
+            matches!(game_state, GameState::Playing),
         );
     }
 }

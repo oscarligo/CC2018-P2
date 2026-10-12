@@ -9,6 +9,14 @@ pub struct Framebuffer {
     texture: Texture2D,
 }
 
+pub struct TitleScreen<'a> {
+    pub title: &'a Texture2D,
+    pub singleplayer: &'a Texture2D,
+    pub quit: &'a Texture2D,
+    pub singleplayer_bounds: Rectangle,
+    pub quit_bounds: Rectangle,
+}
+
 impl Framebuffer {
     // Constructor
     pub fn new(
@@ -60,19 +68,62 @@ impl Framebuffer {
         effect_selector: &Texture2D,
         hearts: &[Texture2D],
         selected_effect: usize,
+        blur_radius: u32,
+        title_screen: Option<TitleScreen<'_>>,
+        show_hud: bool,
     ) {
         if pixels_changed {
-            let total_bytes = self.pixels.len() * std::mem::size_of::<Color>();
-            let raw_pixel_slice = unsafe {
-                std::slice::from_raw_parts(self.pixels.as_ptr() as *const u8, total_bytes)
-            };
+            let blurred = (blur_radius > 0)
+                .then(|| blur_pixels(&self.pixels, self.width, self.height, blur_radius));
+            let pixels = blurred.as_deref().unwrap_or(&self.pixels);
+            let total_bytes = pixels.len() * std::mem::size_of::<Color>();
+            let raw_pixel_slice =
+                unsafe { std::slice::from_raw_parts(pixels.as_ptr() as *const u8, total_bytes) };
             let _ = self.texture.update_texture(raw_pixel_slice);
         }
 
         let mut renderer = window.begin_drawing(raylib_thread);
         renderer.clear_background(Color::BLACK);
         renderer.draw_texture(&self.texture, 0, 0, Color::WHITE);
-        if let Some((toast, progress)) = toast {
+
+        if let Some(title_screen) = title_screen {
+            let title_width = self.width as f32 * 0.62;
+            let title_height =
+                title_width * title_screen.title.height as f32 / title_screen.title.width as f32;
+            renderer.draw_texture_pro(
+                title_screen.title,
+                Rectangle::new(
+                    0.0,
+                    0.0,
+                    title_screen.title.width as f32,
+                    title_screen.title.height as f32,
+                ),
+                Rectangle::new(
+                    (self.width as f32 - title_width) * 0.5,
+                    -title_height * 0.18,
+                    title_width,
+                    title_height,
+                ),
+                Vector2::zero(),
+                0.0,
+                Color::WHITE,
+            );
+            for (texture, bounds) in [
+                (title_screen.singleplayer, title_screen.singleplayer_bounds),
+                (title_screen.quit, title_screen.quit_bounds),
+            ] {
+                renderer.draw_texture_pro(
+                    texture,
+                    Rectangle::new(0.0, 0.0, texture.width as f32, texture.height as f32),
+                    bounds,
+                    Vector2::zero(),
+                    0.0,
+                    Color::WHITE,
+                );
+            }
+        }
+
+        if show_hud && let Some((toast, progress)) = toast {
             let target_width = (self.width as f32 * 0.36).min(360.0);
             let scale = target_width / toast.width as f32;
             let progress = progress.clamp(0.0, 1.0);
@@ -86,6 +137,10 @@ impl Framebuffer {
                 scale,
                 Color::WHITE,
             );
+        }
+
+        if !show_hud {
+            return;
         }
 
         let hotbar_x = (self.width as f32 - hotbar.width as f32) * 0.5;
@@ -205,6 +260,39 @@ impl Framebuffer {
             }
         });
     }
+}
+
+fn blur_pixels(pixels: &[Color], width: u32, height: u32, radius: u32) -> Vec<Color> {
+    let width = width as usize;
+    let height = height as usize;
+    let radius = radius as isize;
+    let offsets = [-radius, 0, radius];
+    let mut blurred = Vec::with_capacity(pixels.len());
+
+    for y in 0..height {
+        for x in 0..width {
+            let mut red = 0u32;
+            let mut green = 0u32;
+            let mut blue = 0u32;
+            for offset_y in offsets {
+                for offset_x in offsets {
+                    let sample_x = (x as isize + offset_x).clamp(0, width as isize - 1) as usize;
+                    let sample_y = (y as isize + offset_y).clamp(0, height as isize - 1) as usize;
+                    let sample = pixels[sample_y * width + sample_x];
+                    red += sample.r as u32;
+                    green += sample.g as u32;
+                    blue += sample.b as u32;
+                }
+            }
+            blurred.push(Color::new(
+                (red / 9) as u8,
+                (green / 9) as u8,
+                (blue / 9) as u8,
+                255,
+            ));
+        }
+    }
+    blurred
 }
 
 // auxiliary function to fill a block of pixels in the framebuffer with a specific color

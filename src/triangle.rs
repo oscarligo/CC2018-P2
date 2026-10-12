@@ -225,13 +225,8 @@ fn parse_obj(source: &str, height: f32, material: Material) -> Result<Vec<Triang
     }
     let scale = height / model_height;
     let origin = Vec3A::new((min.x + max.x) * 0.5, min.y, (min.z + max.z) * 0.5);
-    let mut group_bounds = vec![
-        (
-            Vec3A::splat(f32::INFINITY),
-            Vec3A::splat(f32::NEG_INFINITY),
-        );
-        group + 1
-    ];
+    let mut group_bounds =
+        vec![(Vec3A::splat(f32::INFINITY), Vec3A::splat(f32::NEG_INFINITY),); group + 1];
     for (face, group) in &faces {
         for [vertex, _, _] in face {
             let position = (vertices[*vertex] - origin) * scale;

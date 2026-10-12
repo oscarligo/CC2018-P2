@@ -6,7 +6,6 @@ supporting both PNG and HDR formats. It includes gamma correction for PNG images
 llows for efficient sampling based on 3D direction vectors.
 */
 
-
 const INV_TWO_PI: f32 = 1.0 / (2.0 * PI); // Precomputed constant for efficiency in texture sampling
 const INV_PI: f32 = 1.0 / PI; // Precomputed constant for efficiency in texture sampling
 
@@ -51,7 +50,6 @@ impl BackgroundTexture {
         }
     }
 
-    
     pub fn load_hdr(path: &str) -> Self {
         let dynamic_img = image::open(path).expect("No se pudo abrir la imagen HDR");
         let rgb_img = dynamic_img.into_rgb32f();

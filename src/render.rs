@@ -1,6 +1,6 @@
-use crate::camera::Camera;
 use crate::bvh::Bvh;
-use crate::caster::{cast_ray, Ray};
+use crate::camera::Camera;
+use crate::caster::{Ray, cast_ray};
 use crate::framebuffer::Framebuffer;
 use crate::material::Light;
 use crate::textures::background::BackgroundTexture;

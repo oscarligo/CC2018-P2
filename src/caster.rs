@@ -1,14 +1,14 @@
-use crate::vector::Vec3A;
 use crate::bvh::Bvh;
 use crate::material::*;
 use crate::render::RenderMode;
 use crate::textures::background::BackgroundTexture;
 use crate::textures::texture::Texture;
+use crate::vector::Vec3A;
 
 /*
     This module defines the core raycasting logic for the 3D scene.
     It includes the Intersection struct, Ray struct, and the RayIntersect trait.
-    The cast_ray function handles ray-object intersections and shading based on 
+    The cast_ray function handles ray-object intersections and shading based on
     the selected render mode.
 */
 
@@ -18,14 +18,14 @@ const MAX_RECURSION_DEPTH: u32 = 2;
 #[derive(Debug, Clone, Copy)]
 #[allow(dead_code)]
 pub struct Intersection {
-    pub distance: f32, // Distance from the ray origin to the intersection point
-    pub point: Vec3A, // Intersection point in world space
-    pub normal: Vec3A, // Surface normal at the intersection point
+    pub distance: f32,         // Distance from the ray origin to the intersection point
+    pub point: Vec3A,          // Intersection point in world space
+    pub normal: Vec3A,         // Surface normal at the intersection point
     pub is_intersecting: bool, // Flag indicating whether an intersection occurred
-    pub material: Material, // Material properties at the intersection point
-    pub uv: (f32, f32), // UV texture coordinates at the intersection point
-    pub tangent: Vec3A, // Tangent vector at the intersection point (for normal mapping)
-    pub bitangent: Vec3A, // Bitangent vector at the intersection point (for normal mapping)
+    pub material: Material,    // Material properties at the intersection point
+    pub uv: (f32, f32),        // UV texture coordinates at the intersection point
+    pub tangent: Vec3A,        // Tangent vector at the intersection point (for normal mapping)
+    pub bitangent: Vec3A,      // Bitangent vector at the intersection point (for normal mapping)
 }
 
 impl Intersection {
@@ -88,7 +88,7 @@ impl Ray {
 
 // Defines the interface for objects that can be intersected by a ray.
 pub trait RayIntersect: Sync + Send {
-    fn intersect(&self, ray: &Ray) -> Intersection; 
+    fn intersect(&self, ray: &Ray) -> Intersection;
 }
 
 // Computes the perturbed normal at the intersection point using the normal map, if available.
@@ -103,13 +103,13 @@ fn get_perturbed_normal(hit: &Intersection, textures: &[Texture]) -> Vec3A {
     }
 }
 
-// Casts a ray into the scene, checking for intersections with objects and applying 
+// Casts a ray into the scene, checking for intersections with objects and applying
 // shading based on the render mode.
 pub fn cast_ray(
     ray: &Ray,
     objects: &Bvh,
     lights: &[Light],
-    mode: RenderMode, 
+    mode: RenderMode,
     background: &BackgroundTexture,
     textures: &[Texture],
 ) -> Vec3A {
@@ -144,8 +144,8 @@ pub fn cast_ray(
                 let light_vec = light.position - intersection.point;
                 let light_dir = light_vec.normalize();
                 let n_dot_l = n.dot(light_dir).max(0.0);
-                let intensity = light.intensity
-                    / (1.0 + light.attenuation * light_vec.length_squared());
+                let intensity =
+                    light.intensity / (1.0 + light.attenuation * light_vec.length_squared());
                 light_sum += n_dot_l * intensity;
             }
             let color = if let Some(diff_id) = intersection.material.textures.diffuse_id {
@@ -157,7 +157,9 @@ pub fn cast_ray(
         }
 
         // Full shading mode: applies full lighting with shadows, reflections, and refractions
-        RenderMode::Full => cast_ray_recursive(ray, objects, lights, background, textures, 0, &intersection),
+        RenderMode::Full => {
+            cast_ray_recursive(ray, objects, lights, background, textures, 0, &intersection)
+        }
     }
 }
 
@@ -203,8 +205,7 @@ fn cast_ray_recursive(
             let light_vec = light.position - hit.point;
             let light_dist = light_vec.length();
             let light_dir = light_vec / light_dist;
-            let intensity = light.intensity
-                / (1.0 + light.attenuation * light_dist * light_dist);
+            let intensity = light.intensity / (1.0 + light.attenuation * light_dist * light_dist);
 
             let normal_offset = if light_dir.dot(hit.normal) < 0.0 {
                 -hit.normal * BIAS
@@ -249,7 +250,15 @@ fn cast_ray_recursive(
         let sec_hit = objects.closest_hit(&reflect_ray);
 
         reflection_color = if sec_hit.is_intersecting {
-            cast_ray_recursive(&reflect_ray, objects, lights, background, textures, depth + 1, &sec_hit)
+            cast_ray_recursive(
+                &reflect_ray,
+                objects,
+                lights,
+                background,
+                textures,
+                depth + 1,
+                &sec_hit,
+            )
         } else {
             background.sample(reflect_ray.direction)
         };
@@ -258,7 +267,8 @@ fn cast_ray_recursive(
     // Refraction & Fresnel
     let mut refraction_color = Vec3A::ZERO;
     if hit.material.albedo[3] > 0.0 {
-        let (kr, refract_dir_opt) = fresnel_and_refract(ray.direction, shading_normal, hit.material.refractive_index);
+        let (kr, refract_dir_opt) =
+            fresnel_and_refract(ray.direction, shading_normal, hit.material.refractive_index);
 
         if let Some(refract_dir) = refract_dir_opt {
             let normal_offset = if refract_dir.dot(hit.normal) < 0.0 {
@@ -271,7 +281,15 @@ fn cast_ray_recursive(
             let sec_hit = objects.closest_hit(&refract_ray);
 
             let transmitted_color = if sec_hit.is_intersecting {
-                cast_ray_recursive(&refract_ray, objects, lights, background, textures, depth + 1, &sec_hit)
+                cast_ray_recursive(
+                    &refract_ray,
+                    objects,
+                    lights,
+                    background,
+                    textures,
+                    depth + 1,
+                    &sec_hit,
+                )
             } else {
                 background.sample(refract_ray.direction)
             };

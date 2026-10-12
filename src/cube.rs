@@ -58,7 +58,11 @@ impl RayIntersect for Cube {
         let local_p = (hit_p - self.center) * self.inv_half;
 
         let (normal, u, v, tangent, bitangent) = if t_hit == t_target.x {
-            let sign = if is_outside { -ray.direction.x.signum() } else { ray.direction.x.signum() };
+            let sign = if is_outside {
+                -ray.direction.x.signum()
+            } else {
+                ray.direction.x.signum()
+            };
             (
                 Vec3A::new(sign, 0.0, 0.0),
                 (-local_p.z * sign + 1.0) * 0.5,
@@ -67,7 +71,11 @@ impl RayIntersect for Cube {
                 Vec3A::new(0.0, -1.0, 0.0),
             )
         } else if t_hit == t_target.y {
-            let sign = if is_outside { -ray.direction.y.signum() } else { ray.direction.y.signum() };
+            let sign = if is_outside {
+                -ray.direction.y.signum()
+            } else {
+                ray.direction.y.signum()
+            };
             (
                 Vec3A::new(0.0, sign, 0.0),
                 (local_p.x + 1.0) * 0.5,
@@ -77,7 +85,11 @@ impl RayIntersect for Cube {
             )
         } else {
             // Eje Z
-            let sign = if is_outside { -ray.direction.z.signum() } else { ray.direction.z.signum() };
+            let sign = if is_outside {
+                -ray.direction.z.signum()
+            } else {
+                ray.direction.z.signum()
+            };
             (
                 Vec3A::new(0.0, 0.0, sign),
                 (local_p.x * sign + 1.0) * 0.5,
