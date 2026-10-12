@@ -15,6 +15,7 @@ pub(super) struct Materials {
     pub trunk: Material,
     pub leaves: Material,
     pub light: Material,
+    pub dark_oak: Material,
 }
 
 pub(super) fn visible_cubes(
@@ -92,6 +93,7 @@ impl Materials {
             11 => self.trunk,
             12 => self.leaves,
             13 => self.light,
+            14 => self.dark_oak,
             _ => self.terrain,
         }
     }

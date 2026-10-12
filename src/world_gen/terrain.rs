@@ -160,6 +160,7 @@ impl WorldGenerator {
         trunk: Material,
         leaves: Material,
         light: Material,
+        dark_oak: Material,
     ) -> Vec<Cube> {
         let grid = self.build_grid(self.offset_x, self.offset_z);
         visible_cubes(
@@ -182,6 +183,7 @@ impl WorldGenerator {
                 trunk,
                 leaves,
                 light,
+                dark_oak,
             },
         )
     }

@@ -149,6 +149,7 @@ fn main() {
     let remove_sound = load_sound("assets/sounds/remove.ogg.mp3");
     let toast_in_sound = load_sound("assets/sounds/in.mp3");
     let toast_out_sound = load_sound("assets/sounds/out.mp3");
+    let click_sound = load_sound("assets/sounds/click.mp3");
     let toast_textures = [
         load_ui_texture(&mut rl, &thread, "assets/ui/danny.png"),
         load_ui_texture(&mut rl, &thread, "assets/ui/aria_math.png"),
@@ -161,6 +162,10 @@ fn main() {
         load_ui_texture(&mut rl, &thread, "assets/ui/blocks/wood.png"),
         load_ui_texture(&mut rl, &thread, "assets/ui/blocks/cobblestone.png"),
         load_ui_texture(&mut rl, &thread, "assets/ui/blocks/gold.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/glowstone.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/copper.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/dark_wood.png"),
+        load_ui_texture(&mut rl, &thread, "assets/ui/blocks/prismarine.png"),
     ];
     let effect = load_ui_texture(&mut rl, &thread, "assets/ui/effect.png");
     let effect_selector = load_ui_texture(&mut rl, &thread, "assets/ui/effect_selector.png");
@@ -575,7 +580,16 @@ fn main() {
     let mut lights = vec![sun];
 
     let mut generator = WorldGenerator::new(TERRAIN_GRID_SIZE, 16, TERRAIN_GRID_SIZE, 1.0);
-    let placeable_blocks = [(3, brick), (4, wood), (7, cobblestone), (5, gold_block)];
+    let placeable_blocks = [
+        (3, brick),
+        (4, wood),
+        (7, cobblestone),
+        (5, gold_block),
+        (13, glowstone),
+        (9, copper),
+        (14, dark_oak_wood),
+        (8, prismarine),
+    ];
     let mut selected_block = 0;
     let character = load_obj("assets/character.obj", CHARACTER_HEIGHT, character_material)
         .unwrap_or_else(|error| panic!("No se pudo cargar el personaje: {error}"));
@@ -594,6 +608,7 @@ fn main() {
             log,
             moss,
             glowstone,
+            dark_oak_wood,
         )
     };
     let mut cubes = generate_world(&generator);
@@ -627,10 +642,17 @@ fn main() {
     let mut next_step = 0;
     let mut active_toast: Option<(usize, f32)> = None;
     let mut game_state = GameState::Title;
+    let mut quit_after_click: Option<f32> = None;
 
     while !rl.window_should_close() {
         let frame_time = rl.get_frame_time();
         let delta_time = frame_time.min(0.05);
+        if let Some(elapsed) = &mut quit_after_click {
+            *elapsed += frame_time;
+            if *elapsed >= 0.15 {
+                break;
+            }
+        }
         let button_width = singleplayer_button.width as f32 * TITLE_BUTTON_SCALE;
         let button_height = singleplayer_button.height as f32 * TITLE_BUTTON_SCALE;
         let quit_bounds = Rectangle::new(
@@ -649,11 +671,16 @@ fn main() {
         let title_active = matches!(game_state, GameState::Title);
         let singleplayer_hovered = title_active && contains(singleplayer_bounds, mouse);
         let quit_hovered = title_active && contains(quit_bounds, mouse);
-        if title_active && rl.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
+        if title_active
+            && quit_after_click.is_none()
+            && rl.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT)
+        {
             if quit_hovered {
-                break;
+                click_sound.play();
+                quit_after_click = Some(0.0);
             }
             if singleplayer_hovered {
+                click_sound.play();
                 game_state = GameState::Entering {
                     elapsed: 0.0,
                     start_eye: camera.eye,
@@ -662,6 +689,7 @@ fn main() {
         }
 
         let mut intro_finished = false;
+        let previous_render_mode = render_mode;
         let (
             changed,
             is_moving,
@@ -688,6 +716,9 @@ fn main() {
             }
             GameState::Playing => event_handler.handle_events(&rl, &mut camera, &mut render_mode),
         };
+        if render_mode != previous_render_mode {
+            click_sound.play();
+        }
         if intro_finished {
             game_state = GameState::Playing;
             needs_full_render = true;
